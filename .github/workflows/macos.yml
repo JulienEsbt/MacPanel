@@ -1,0 +1,21 @@
+name: macOS build and tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install XcodeGen if needed
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: '1'
+        run: command -v xcodegen >/dev/null || brew install xcodegen
+      - name: Native XCTest suite
+        run: bash scripts/test.sh
+      - name: Release build and local signature verification
+        run: bash scripts/build.sh

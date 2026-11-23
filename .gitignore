@@ -1,0 +1,6 @@
+.build/
+.build*.log
+*.xcodeproj/
+*.xcresult/
+.DS_Store
+*.xcuserstate

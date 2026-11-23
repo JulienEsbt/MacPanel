@@ -11,7 +11,7 @@ struct DiskVolume: Identifiable, Sendable {
     let isInternal: Bool?
     let isEjectable: Bool
     var id: String { url.path }
-    var canEject: Bool { isInternal == false && isEjectable && url.path != "/" }
+    var canEject: Bool { isInternal == false && isEjectable && url.path != "/" && uuid?.isEmpty == false }
     var usedFraction: Double? {
         guard let total, total > 0, let available, available >= 0 else { return nil }
         return 1 - min(1, Double(available) / Double(total))

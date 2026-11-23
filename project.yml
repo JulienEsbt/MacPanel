@@ -1,0 +1,55 @@
+name: MacPanel
+options:
+  deploymentTarget:
+    macOS: '14.0'
+settings:
+  base:
+    SWIFT_VERSION: '6.0'
+    MACOSX_DEPLOYMENT_TARGET: '14.0'
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: '-'
+    ENABLE_HARDENED_RUNTIME: YES
+    GENERATE_INFOPLIST_FILE: NO
+targets:
+  MacPanel:
+    type: application
+    platform: macOS
+    sources: [Sources, Resources, Native]
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: MacPanel
+        CFBundleShortVersionString: '0.2.0'
+        CFBundleVersion: '2'
+        CFBundleIconFile: AppIcon
+        LSUIElement: true
+        NSAppleEventsUsageDescription: MacPanel utilise Événements système uniquement pour changer le mode clair ou sombre à ta demande.
+        NSHumanReadableCopyright: Copyright © 2026 Julien Esterbet
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.julienesbt.MacPanel
+      CODE_SIGN_ENTITLEMENTS: MacPanel.entitlements
+      SWIFT_OBJC_BRIDGING_HEADER: Native/DisplayBridge.h
+  MacPanelTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - Sources/Metrics.swift
+      - Sources/SystemMonitor.swift
+      - Sources/AwakeSession.swift
+      - Sources/Disks.swift
+      - Sources/Displays.swift
+      - Sources/PanelShortcut.swift
+      - Sources/PanelPlacement.swift
+      - Native
+      - Tests
+    settings:
+      GENERATE_INFOPLIST_FILE: YES
+      PRODUCT_BUNDLE_IDENTIFIER: com.julienesbt.MacPanel.tests
+      SWIFT_OBJC_BRIDGING_HEADER: Native/DisplayBridge.h
+schemes:
+  MacPanel:
+    build:
+      targets:
+        MacPanel: all
+    test:
+      targets: [MacPanelTests]

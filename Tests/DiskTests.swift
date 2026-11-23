@@ -8,6 +8,9 @@ final class DiskTests: XCTestCase {
         }
         XCTAssertTrue(disk(internalState: false, ejectable: true).canEject)
         XCTAssertFalse(disk(internalState: false, ejectable: false).canEject)
+        let unidentified = DiskVolume(url: URL(fileURLWithPath: "/Volumes/Test"), uuid: nil, name: "Test",
+            total: 100, available: 25, isInternal: false, isEjectable: true)
+        XCTAssertFalse(unidentified.canEject)
     }
 
     func testPurgeableSpaceCannotProduceNegativeUsage() {

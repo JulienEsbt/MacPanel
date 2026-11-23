@@ -7,7 +7,7 @@
 - [x] Explicit software-dimming fallback and restoration without root privileges
 - [x] Global shortcut with AZERTY mapping and conflict handling
 - [x] Correct multi-display placement, confirmed by the user
-- [x] Final local suite: 26 tests passed; signed Release build installed
+- [x] Final local suite: 27 tests passed; signed Release build installed
 - [x] English/French README, real screenshots, MIT credits and source-build instructions
 - [x] GitHub Actions workflow prepared for build and tests
 

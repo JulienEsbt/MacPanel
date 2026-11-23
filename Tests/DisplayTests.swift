@@ -2,6 +2,11 @@ import XCTest
 import AppKit
 
 final class DisplayTests: XCTestCase {
+    func testMalformedGammaTablesAreRejectedBeforeCallingTheDisplayAPI() {
+        XCTAssertFalse(GammaTable(red: [0, 1], green: [0], blue: [0, 1]).apply(0))
+        XCTAssertFalse(GammaTable(red: [], green: [], blue: []).apply(0))
+        XCTAssertFalse(GammaTable(red: [.nan], green: [0], blue: [0]).apply(0))
+    }
     func testSoftwareDimmingScalesOriginalTablesWithoutChangingTheirShape() {
         let original = GammaTable(red: [0, 0.4, 1], green: [0, 0.5, 1], blue: [0, 0.6, 1])
         let dimmed = original.scaled(0.5)

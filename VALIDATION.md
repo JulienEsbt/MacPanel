@@ -7,7 +7,7 @@ Local success on this setup does not establish compatibility with every supporte
 
 ### Automated checks
 
-- **26 XCTest tests passed**, zero failures, in the final local run.
+- **27 XCTest tests passed**, zero failures, in the final local run.
 - Signed universal Release build passed (`arm64` and `x86_64`).
 - Strict signature verification passed for the installed local Apple Development build.
   This is development signing, not Developer ID notarization or an App Store release.

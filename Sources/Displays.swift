@@ -141,7 +141,9 @@ struct GammaTable {
     }
 
     func apply(_ display: CGDirectDisplayID) -> Bool {
-        CGSetDisplayTransferByTable(display, UInt32(red.count), red, green, blue) == .success
+        guard !red.isEmpty, red.count <= 4096, red.count == green.count, red.count == blue.count,
+            (red + green + blue).allSatisfy({ $0.isFinite && (0...1).contains($0) }) else { return false }
+        return CGSetDisplayTransferByTable(display, UInt32(red.count), red, green, blue) == .success
     }
 
     func matches(_ other: GammaTable) -> Bool {

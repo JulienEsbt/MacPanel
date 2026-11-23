@@ -1,5 +1,14 @@
 # Local validation
 
+## 0.2.1 — 23 November 2026
+
+- 28 native XCTest tests passed locally, including missing/invalid storage counters
+  and consistency between used, free and total capacity.
+- Disk usage now uses the filesystem free-space counter. The important-usage API,
+  which includes purgeable data, is no longer used to infer occupied storage.
+- Release build succeeded. GitHub screenshots intentionally remain unchanged for a
+  later visual update requested by the owner.
+
 ## 0.2.0 — 23 November 2026
 
 **Environment:** MacBook Air M3, 16 GB; macOS 27.3 beta (26C5047e), Xcode 27.2 (27B52).

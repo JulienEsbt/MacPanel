@@ -21,12 +21,14 @@ struct DisksView: View {
                         }
                     }
                     if let used = disk.usedFraction { ProgressView(value: used).tint(used > 0.9 ? .orange : .blue) }
-                    Text("\(capacity(disk.available)) disponibles sur \(capacity(disk.total))")
-                        .font(.caption).foregroundStyle(.secondary)
+                    Text("\(capacity(disk.used)) utilisés sur \(capacity(disk.total))")
+                        .font(.callout.weight(.medium)).monospacedDigit()
+                    Text("\(capacity(disk.available)) libres")
+                        .font(.caption).monospacedDigit().foregroundStyle(.secondary)
                 }
                 .padding(12).background(Color(nsColor: .controlBackgroundColor).opacity(0.75), in: RoundedRectangle(cornerRadius: 10))
             }
-            Text("L’espace disponible peut inclure du stockage récupérable par macOS. Plusieurs volumes APFS peuvent partager le même espace : leurs capacités ne s’additionnent pas.")
+            Text("L’espace utilisé inclut les données que macOS peut éventuellement récupérer. Plusieurs volumes APFS peuvent partager le même espace : leurs capacités ne s’additionnent pas.")
                 .font(.caption).foregroundStyle(.secondary)
             if let error = disks.error { Text(error).font(.callout).foregroundStyle(.orange).textSelection(.enabled) }
         }.task { disks.start() }.onDisappear { disks.stop() }

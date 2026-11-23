@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 — 2026-11-23
+
+- Display used storage against total capacity, with free space on a separate line.
+- Use filesystem free space consistently, so used and free values add up to total
+  capacity; purgeable data remains included in used space.
+
 ## 0.2.0 — 2026-11-23
 
 ### Added

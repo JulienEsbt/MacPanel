@@ -78,7 +78,7 @@ struct PanelView: View {
             }
             Divider()
             HStack {
-                Label("Local · 0.2.0", systemImage: "checkmark.shield")
+                Label("Local · 0.2.1", systemImage: "checkmark.shield")
                     .font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button("Quitter") { NSApp.terminate(nil) }

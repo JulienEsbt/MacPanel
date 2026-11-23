@@ -13,7 +13,7 @@ MacPanel rassemble les commandes et les mesures utiles du Mac dans une seule app
 Développée avec **SwiftUI et AppKit**, elle fonctionne localement, sans compte, publicité, analyse d’usage,
 fonction d’IA ou service administrateur. Les mesures matérielles s’arrêtent à la fermeture du panneau.
 
-**Première version publique · 0.2.0.** L’interface est actuellement en français ; la documentation existe en français et en anglais.
+**Version publique initiale · 0.2.1.** L’interface est actuellement en français ; la documentation existe en français et en anglais.
 
 ## Aperçu
 
@@ -37,7 +37,7 @@ Captures réelles de MacPanel sur un MacBook Air M3. Les capacités des écrans 
 | **Commandes rapides** | Mode sombre, icônes du bureau, masquage automatique du Dock/de la barre des menus, et Muet sur les sorties compatibles. |
 | **Maintien éveillé** | Sessions de 15, 30 ou 60 minutes ; arrêt manuel, à échéance, au verrouillage, à la veille ou en quittant. |
 | **Écrans** | Luminosité par écran, modifiée pendant le déplacement du curseur. Commandes matérielles Apple/DDC compatibles et atténuation logicielle explicitement indiquée en repli. |
-| **Stockage** | Volumes montés, capacité/espace disponible, ouverture dans Finder et éjection des volumes externes compatibles. |
+| **Stockage** | Volumes montés, espace utilisé sur le total et espace libre, ouverture dans Finder et éjection des volumes externes compatibles. |
 | **Accès quotidien** | Raccourci configurable, **Contrôle + Option + M** par défaut, et ouverture à la connexion sans afficher le panneau. |
 
 ## Utilisation
@@ -81,7 +81,7 @@ Il n’existe actuellement **aucun téléchargement précompilé notarié**. La 
 - **Mesures explicites :** une valeur absente affiche `—`. La mémoire utilisée est estimée ; la pression mémoire correspond au niveau du système, pas à un seuil déduit du pourcentage occupé. Le compteur GPU dépend du pilote.
 - **Compatibilité des écrans :** la luminosité Apple et le transport DDC Apple Silicon utilisent des interfaces Apple privées détectées dynamiquement. Elles peuvent changer selon macOS. Le contrôle matériel dépend de l’écran, de la connexion et de l’activation de DDC/CI. Le DDC externe est actuellement implémenté pour Apple Silicon.
 - **Atténuation logicielle :** elle modifie les tables de rendu de l’image, sans réduire le rétroéclairage ou la consommation de l’écran. Elle est temporaire et restaurée en quittant si MacPanel possède encore le réglage appliqué. D’autres utilitaires d’écran peuvent interagir avec elle.
-- **Stockage :** l’espace disponible peut inclure du stockage récupérable. Des volumes APFS peuvent partager leur capacité ; elle ne s’additionne pas. macOS conserve le contrôle de l’éjection des volumes occupés. Aucun nettoyage de fichiers ni démontage forcé.
+- **Stockage :** espace utilisé et espace libre proviennent des mêmes compteurs du système de fichiers. L’espace utilisé inclut les données que macOS peut récupérer. Des volumes APFS peuvent partager leur capacité ; elle ne s’additionne pas. macOS conserve le contrôle de l’éjection des volumes occupés. Aucun nettoyage de fichiers ni démontage forcé.
 - **Veille :** l’app ne continue pas à exécuter du code quand le Mac dort ou est éteint. Le maintien éveillé ne remplace pas la veille manuelle ou la fermeture du capot.
 - **Rôles séparés :** la gestion de charge reste dans [OpenDente](https://github.com/JulienEsbt/OpenDente). MacPanel ne duplique pas ses limites et commandes de batterie.
 

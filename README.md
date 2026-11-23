@@ -15,7 +15,7 @@ MacPanel brings the controls and readings you reach for into one menu bar app.
 Built with **SwiftUI and AppKit**, it runs locally, with no account, advertising,
 analytics, AI features or administrator helper. Hardware sampling stops when the panel closes.
 
-**Early release · 0.2.0.** The current interface is in French. Documentation is available in English and French.
+**Early release · 0.2.1.** The current interface is in French. Documentation is available in English and French.
 
 ## A look inside
 
@@ -39,7 +39,7 @@ Real screenshots of MacPanel on a MacBook Air M3. Display capabilities and stora
 | **Quick controls** | Dark appearance, desktop icons, Dock/menu bar auto-hide, and mute for a supported audio output. |
 | **Stay awake** | Temporary 15-, 30- or 60-minute sessions. Stop manually, at expiry, on lock, on sleep or when quitting. |
 | **Displays** | Per-display brightness, updated while moving the slider. Apple hardware control, external DDC/CI where supported, and clearly labelled software dimming otherwise. |
-| **Storage** | Mounted volumes, total/available space, opening in Finder, and ejection of eligible external volumes. |
+| **Storage** | Mounted volumes, used/total capacity and free space, opening in Finder, and ejection of eligible external volumes. |
 | **Everyday access** | Configurable global shortcut, default **Control + Option + M**, and optional launch at login without opening the panel. |
 
 ## Use it
@@ -83,7 +83,7 @@ There is currently **no notarized prebuilt download**. Local development signing
 - **Honest readings:** unavailable counters show `—`. Memory usage is an estimate; memory pressure is the system’s own level, not a threshold inferred from RAM percentage. GPU values depend on the driver.
 - **Display compatibility:** Apple brightness and Apple Silicon DDC transport use dynamically detected private Apple interfaces. They may change between macOS versions. Hardware DDC depends on the monitor, connection and DDC/CI setting. External DDC is currently implemented for Apple Silicon.
 - **Software dimming:** changes the image transfer tables, not the backlight or power consumption. It is temporary, is restored on quit when MacPanel still owns the applied setting, and may interact with other display utilities.
-- **Storage:** available space can include purgeable data; APFS volumes can share a container. Their capacities must not be added together. Busy volumes remain subject to macOS’s ejection rules. MacPanel does not clean files or force an unmount.
+- **Storage:** used and free space come from the same filesystem counters. Used space includes data macOS may reclaim. APFS volumes can share a container; their capacities must not be added together. Busy volumes remain subject to macOS’s ejection rules. MacPanel does not clean files or force an unmount.
 - **Sleep:** the app cannot continue executing while the Mac is asleep or shut down. Temporary awake sessions do not override manual sleep or closing the lid.
 - **Separate responsibilities:** battery charging stays with [OpenDente](https://github.com/JulienEsbt/OpenDente). MacPanel does not manage charge limits or duplicate its battery controls.
 

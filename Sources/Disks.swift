@@ -12,9 +12,13 @@ struct DiskVolume: Identifiable, Sendable {
     let isEjectable: Bool
     var id: String { url.path }
     var canEject: Bool { isInternal == false && isEjectable && url.path != "/" && uuid?.isEmpty == false }
-    var usedFraction: Double? {
+    var used: Int64? {
         guard let total, total > 0, let available, available >= 0 else { return nil }
-        return 1 - min(1, Double(available) / Double(total))
+        return total - min(total, available)
+    }
+    var usedFraction: Double? {
+        guard let total, let used else { return nil }
+        return Double(used) / Double(total)
     }
 }
 
@@ -31,7 +35,7 @@ actor DiskReader {
 
     func volumes() -> [DiskVolume] {
         let keys: Set<URLResourceKey> = [.volumeNameKey, .volumeUUIDStringKey, .volumeTotalCapacityKey,
-            .volumeAvailableCapacityKey, .volumeAvailableCapacityForImportantUsageKey,
+            .volumeAvailableCapacityKey,
             .volumeIsInternalKey, .volumeIsEjectableKey, .volumeIsBrowsableKey]
         let root = URL(fileURLWithPath: "/", isDirectory: true)
         let mounted = FileManager.default.mountedVolumeURLs(includingResourceValuesForKeys: Array(keys), options: [.skipHiddenVolumes]) ?? []
@@ -41,7 +45,9 @@ actor DiskReader {
                 let info = try? url.resourceValues(forKeys: keys),
                 url.path == "/" || info.volumeIsBrowsable != false else { return nil }
             let total = info.volumeTotalCapacity.map(Int64.init)
-            let available = info.volumeAvailableCapacityForImportantUsage ?? info.volumeAvailableCapacity.map(Int64.init)
+            // Use the same filesystem free-space counter for used + free = total.
+            // The "important usage" API includes purgeable data and would understate used storage.
+            let available = info.volumeAvailableCapacity.map(Int64.init)
             return DiskVolume(url: url, uuid: info.volumeUUIDString, name: info.volumeName ?? url.lastPathComponent,
                 total: total.flatMap { $0 > 0 ? $0 : nil },
                 available: available.flatMap { $0 >= 0 ? $0 : nil },

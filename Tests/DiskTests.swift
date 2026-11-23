@@ -19,6 +19,15 @@ final class DiskTests: XCTestCase {
         XCTAssertNil(disk(internalState: true, ejectable: false, free: -1).usedFraction)
     }
 
+    func testUsedStorageIsConsistentWithFreeAndTotalCapacity() {
+        XCTAssertEqual(disk(internalState: true, ejectable: false, free: 25).used, 75)
+        XCTAssertEqual(disk(internalState: true, ejectable: false, free: 120).used, 0)
+        XCTAssertNil(disk(internalState: true, ejectable: false, free: -1).used)
+        let unavailable = DiskVolume(url: URL(fileURLWithPath: "/"), uuid: nil, name: "Test",
+            total: nil, available: 25, isInternal: true, isEjectable: false)
+        XCTAssertNil(unavailable.used)
+    }
+
     func testActualVolumesIncludeRootAndAreNotDuplicated() async throws {
         let volumes = await DiskReader().volumes()
         XCTAssertEqual(volumes.filter { $0.url.path == "/" }.count, 1)

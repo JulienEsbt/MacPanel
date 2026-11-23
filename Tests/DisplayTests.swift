@@ -14,6 +14,7 @@ final class DisplayTests: XCTestCase {
         XCTAssertEqual(original.red, [0, 0.4, 1])
         XCTAssertTrue(original.matches(original.scaled(1)))
         XCTAssertFalse(original.matches(dimmed))
+        XCTAssertFalse(original.matches(GammaTable(red: [0, .nan, 1], green: [0, 0.5, 1], blue: [0, 0.6, 1])))
         XCTAssertFalse(original.matches(GammaTable(red: [0, 1], green: [0, 1], blue: [0, 1])))
     }
 

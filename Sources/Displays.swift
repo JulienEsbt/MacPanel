@@ -148,7 +148,13 @@ struct GammaTable {
 
     func matches(_ other: GammaTable) -> Bool {
         guard red.count == other.red.count, green.count == other.green.count, blue.count == other.blue.count else { return false }
-        return zip(red + green + blue, other.red + other.green + other.blue).allSatisfy { abs($0 - $1) < 0.002 }
+        for (left, right) in [(red, other.red), (green, other.green), (blue, other.blue)] {
+            for index in left.indices {
+                let difference = abs(left[index] - right[index])
+                if !difference.isFinite || difference >= 0.002 { return false }
+            }
+        }
+        return true
     }
 }
 

@@ -52,7 +52,7 @@ struct PanelView: View {
                     commands
                     awakeSection
                     startup
-                    Picker("Raccourci", selection: Binding(get: { shortcut.selection }, set: shortcut.configure)) {
+                    Picker("Raccourci", selection: Binding(get: { shortcut.selection }, set: { value in shortcut.configure(value) })) {
                         ForEach(PanelShortcut.labels.indices, id: \.self) { index in
                             Text(PanelShortcut.labels[index]).tag(index)
                         }
@@ -205,7 +205,7 @@ struct PanelView: View {
 
     private var startup: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Toggle("Ouvrir à la connexion", isOn: Binding(get: { login.enabled }, set: login.set))
+            Toggle("Ouvrir à la connexion", isOn: Binding(get: { login.enabled }, set: { value in login.set(value) }))
                 .toggleStyle(.switch).controlSize(.small).font(.callout)
                 .help("Démarre MacPanel dans la barre des menus, sans ouvrir le panneau.")
             if login.needsApproval {

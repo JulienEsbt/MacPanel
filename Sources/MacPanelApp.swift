@@ -24,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private let disks = DiskController()
     private let displays = DisplayController()
     private let shortcut = PanelShortcut()
+    private let brightnessKeys = BrightnessKeys()
     private var observers: [(NotificationCenter, NSObjectProtocol)] = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -38,16 +39,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             button.toolTip = "MacPanel"
         }
         popover.contentViewController = NSHostingController(rootView: PanelView(monitor: monitor,
-            controls: controls, awake: awake, login: login, disks: disks, displays: displays, shortcut: shortcut))
+            controls: controls, awake: awake, login: login, disks: disks, displays: displays, shortcut: shortcut, brightnessKeys: brightnessKeys))
         popover.behavior = .transient
         popover.animates = false
         popover.delegate = self
+        brightnessKeys.start(displays: displays)
         shortcut.start { [weak self] in self?.togglePanel() }
         let screenChanges = NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification,
             object: nil, queue: .main) { [weak self] _ in
                 Task { @MainActor in
                     self?.displays.clearShades()
-                    if self?.popover.isShown == true { self?.displays.refresh() }
+                    self?.displays.refresh()
                 }
             }
         observers.append((.default, screenChanges))
@@ -57,6 +59,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             Task { @MainActor in self?.endSession() }
         }
         observers.append((workspace, sleep))
+        let wake = workspace.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.brightnessKeys.resume() }
+        }
+        observers.append((workspace, wake))
         let distributed = DistributedNotificationCenter.default()
         let keyboard = distributed.addObserver(forName: NSNotification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String),
             object: nil, queue: .main) { [weak self] _ in
@@ -67,6 +73,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             Task { @MainActor in self?.endSession() }
         }
         observers.append((distributed, lock))
+        let unlock = distributed.addObserver(forName: NSNotification.Name("com.apple.screenIsUnlocked"), object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.brightnessKeys.resume() }
+        }
+        observers.append((distributed, unlock))
     }
 
     @objc private func togglePanel() {
@@ -100,9 +110,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
 
     func popoverDidShow(_ notification: Notification) {
+        brightnessKeys.resume()
         monitor.start()
         disks.start()
         displays.refresh()
+        displays.startObserving()
         controls.refresh()
         login.refresh()
     }
@@ -110,10 +122,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     func popoverDidClose(_ notification: Notification) {
         monitor.stop()
         disks.stop()
-        displays.stopReading()
+        displays.stopObserving()
     }
 
     private func endSession() {
+        brightnessKeys.suspend()
         awake.stop()
         monitor.stop()
         disks.stop()

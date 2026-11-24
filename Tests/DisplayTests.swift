@@ -59,3 +59,40 @@ final class DisplayTests: XCTestCase {
         for value in [-1, 2, .nan, .infinity] { XCTAssertFalse(MPWriteBrightness(0, value)) }
     }
 }
+
+private actor BrightnessFixture {
+    var value = 0.4
+    var reads = 0
+    func read() -> (Double?, Int32) { reads += 1; return (value, 1) }
+    func change(to value: Double) { self.value = value }
+    func count() -> Int { reads }
+}
+
+extension DisplayTests {
+    @MainActor
+    func testVisiblePanelFollowsNativeBrightnessChangesAndStopsReadingWhenClosed() async throws {
+        let fixture = BrightnessFixture()
+        let reader = BrightnessReader(readOverride: { _ in await fixture.read() })
+        let controller = DisplayController(reader: reader)
+        controller.refresh()
+        for _ in 0..<100 {
+            if !controller.displays.isEmpty { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        XCTAssertFalse(controller.displays.isEmpty)
+        controller.startObserving()
+        await fixture.change(to: 0.65)
+        for _ in 0..<100 {
+            if controller.displays.first?.brightness == 0.65 { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        XCTAssertEqual(controller.displays.first?.brightness, 0.65)
+        controller.stopObserving()
+        let reads = await fixture.count()
+        await fixture.change(to: 0.8)
+        try await Task.sleep(for: .milliseconds(650))
+        XCTAssertEqual(controller.displays.first?.brightness, 0.65)
+        let finalReads = await fixture.count()
+        XCTAssertEqual(finalReads, reads)
+    }
+}

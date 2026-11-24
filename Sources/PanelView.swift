@@ -32,6 +32,7 @@ struct PanelView: View {
     @ObservedObject var disks: DiskController
     @ObservedObject var displays: DisplayController
     @ObservedObject var shortcut: PanelShortcut
+    @ObservedObject var brightnessKeys: BrightnessKeys
     @State private var duration = 30
     @State private var awakeError: String?
     @State private var section = 0
@@ -69,7 +70,7 @@ struct PanelView: View {
                         .accessibilityElement(children: .contain)
                     }
                     } else if section == 1 {
-                        DisplaysView(controller: displays)
+                        DisplaysView(controller: displays, keyboard: brightnessKeys)
                     } else {
                         DisksView(disks: disks)
                     }
@@ -78,7 +79,7 @@ struct PanelView: View {
             }
             Divider()
             HStack {
-                Label("Local · 0.2.1", systemImage: "checkmark.shield")
+                Label("Local · 0.3.1", systemImage: "checkmark.shield")
                     .font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button("Quitter") { NSApp.terminate(nil) }

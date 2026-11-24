@@ -14,8 +14,8 @@ final class PanelShortcut: ObservableObject {
     func start(action: @escaping () -> Void) {
         self.action = action
         var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
-        let status = InstallEventHandler(GetApplicationEventTarget(), { _, _, context in
-            guard let context else { return OSStatus(eventNotHandledErr) }
+        let status = InstallEventHandler(GetApplicationEventTarget(), { _, event, context in
+            guard let context, registeredHotKeyID(event, signature: 0x4D43504C) == 1 else { return OSStatus(eventNotHandledErr) }
             let owner = Unmanaged<PanelShortcut>.fromOpaque(context).takeUnretainedValue()
             Task { @MainActor in owner.action?() }
             return noErr

@@ -41,6 +41,7 @@ struct DisksView: View {
 
 struct DisplaysView: View {
     @ObservedObject var controller: DisplayController
+    @ObservedObject var keyboard: BrightnessKeys
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -51,14 +52,28 @@ struct DisplaysView: View {
                     .help("Actualiser les écrans et la luminosité").accessibilityLabel("Actualiser les écrans")
                     .disabled(controller.busy)
             }
+            VStack(alignment: .leading, spacing: 8) {
+                Toggle("Raccourcis de luminosité externe", isOn: Binding(
+                    get: { keyboard.enabled }, set: { value in keyboard.configure(value) }))
+                    .help("Fonctionne panneau fermé, sans autorisation supplémentaire. Les touches habituelles restent gérées par macOS.")
+                Text("⌃⌥↑ / ↓ : éclaircir ou assombrir les écrans externes.")
+                    .font(.caption).foregroundStyle(.secondary)
+                if keyboard.enabled {
+                    Label(keyboard.active ? "Raccourcis actifs" : "Raccourcis indisponibles", systemImage: keyboard.active ? "checkmark.circle" : "exclamationmark.circle")
+                        .font(.caption).foregroundStyle(keyboard.active ? Color.secondary : Color.orange)
+                    if !controller.hasKeyboardTarget { Text("Aucun écran externe réglable détecté.").font(.caption).foregroundStyle(.secondary) }
+                    if !keyboard.active { Button("Réessayer") { keyboard.resume(); controller.refresh() } }
+                }
+                if let error = keyboard.error { Text(error).font(.caption).foregroundStyle(.orange) }
+            }.padding(12).background(Color(nsColor: .controlBackgroundColor).opacity(0.75), in: RoundedRectangle(cornerRadius: 10))
             if controller.displays.isEmpty { Text("Recherche des écrans…").foregroundStyle(.secondary) }
             ForEach(controller.displays) { display in
                 DisplaySlider(display: display, controller: controller)
             }
-            Text("Le contrôle matériel dépend de l’écran et du câble. Active DDC/CI dans le menu de l’écran si nécessaire. MonitorControl reste installé pour comparaison.")
+            Text("Le contrôle matériel dépend de l’écran et du câble. Active DDC/CI dans le menu de l’écran si nécessaire.")
                 .font(.caption).foregroundStyle(.secondary)
             if let error = controller.error { Text(error).font(.callout).foregroundStyle(.orange) }
-        }.task { controller.refresh() }.onDisappear { controller.stopReading() }
+        }.task { keyboard.resume(); controller.refresh() }
     }
 }
 

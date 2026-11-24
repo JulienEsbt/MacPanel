@@ -64,3 +64,19 @@ Pas de publication ou de push sans demande explicite.
 - Trois vues compactes. Les lectures périodiques cessent panneau fermé ; seules
   les notifications système et le raccourci enregistré restent en attente.
 - Aucun ajout audio, profil, suivi batterie ou fonction en doublon d'OpenDente.
+
+
+## 0.3 — raccourcis de luminosité externes
+
+- Option persistante et désactivable dans Écrans, sans nouvelle dépendance.
+- Contrôle + Option + ↑/↓ agit sur tous les écrans externes réglables par pas de 1/16 ;
+  minimum logiciel de 20 %. Les touches de luminosité natives restent inchangées.
+- Sans écran externe réglable, ne modifier aucun écran intégré.
+- Enregistrement Carbon de deux raccourcis précis ; conflit signalé, aucun événement
+  de saisie ordinaire écouté et aucune permission supplémentaire requise.
+- Routage par signature distincte du raccourci d’ouverture du panneau.
+- Écritures matérielles asynchrones et coalescées. Fonctionnement panneau fermé,
+  découverte événementielle des écrans, arrêt au verrouillage/veille/quitter.
+- Le propriétaire a choisi ce raccourci dédié afin d’éviter la permission très large
+  que macOS 27.3 présente pour l’interception des touches de luminosité natives.
+- MonitorControl retiré à la demande du propriétaire ; réglages conservés pour retour.

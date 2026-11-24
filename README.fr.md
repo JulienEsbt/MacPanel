@@ -13,7 +13,7 @@ MacPanel rassemble les commandes et les mesures utiles du Mac dans une seule app
 Développée avec **SwiftUI et AppKit**, elle fonctionne localement, sans compte, publicité, analyse d’usage,
 fonction d’IA ou service administrateur. Les mesures matérielles s’arrêtent à la fermeture du panneau.
 
-**Version publique initiale · 0.2.1.** L’interface est actuellement en français ; la documentation existe en français et en anglais.
+**Version publique initiale · 0.3.1.** L’interface est actuellement en français ; la documentation existe en français et en anglais.
 
 ## Aperçu
 
@@ -36,7 +36,7 @@ Captures réelles de MacPanel sur un MacBook Air M3. Les capacités des écrans 
 | **Réseau** | Débits entrants et sortants Wi-Fi/Ethernet issus des compteurs locaux. Aucun serveur de test ni inspection des paquets. |
 | **Commandes rapides** | Mode sombre, icônes du bureau, masquage automatique du Dock/de la barre des menus, et Muet sur les sorties compatibles. |
 | **Maintien éveillé** | Sessions de 15, 30 ou 60 minutes ; arrêt manuel, à échéance, au verrouillage, à la veille ou en quittant. |
-| **Écrans** | Luminosité par écran, modifiée pendant le déplacement du curseur. Commandes matérielles Apple/DDC compatibles et atténuation logicielle explicitement indiquée en repli. |
+| **Écrans** | Luminosité par écran, modifiée pendant le déplacement du curseur. Option **Contrôle + Option + ↑/↓** pour tous les écrans externes réglables, même panneau fermé. Commandes matérielles Apple/DDC compatibles et atténuation logicielle explicitement indiquée en repli. |
 | **Stockage** | Volumes montés, espace utilisé sur le total et espace libre, ouverture dans Finder et éjection des volumes externes compatibles. |
 | **Accès quotidien** | Raccourci configurable, **Contrôle + Option + M** par défaut, et ouverture à la connexion sans afficher le panneau. |
 
@@ -46,7 +46,15 @@ Lancez MacPanel depuis Applications, puis cliquez sur l’icône des **trois cur
 Les vues **Système**, **Écrans** et **Disques** regroupent les fonctions. Le raccourci peut être changé ou désactivé dans Système.
 
 Le premier changement d’apparence peut demander l’autorisation de piloter **Événements système**.
-Ces fonctions ne demandent ni Accessibilité, ni Enregistrement de l’écran, ni Accès complet au disque.
+Activez **Raccourcis de luminosité externe** dans Écrans pour utiliser **⌃⌥↑**
+pour éclaircir et **⌃⌥↓** pour assombrir tous les écrans externes réglables. Chaque appui
+change le niveau de 1/16 ; l’atténuation logicielle s’arrête à 20 % minimum. Les touches
+habituelles de luminosité restent entièrement gérées par macOS. Sans écran externe
+réglable connecté, ces raccourcis ne changent aucun écran.
+Cette fonction ne demande ni Accessibilité, ni System & App Protection Override,
+ni Surveillance de l’entrée, ni Enregistrement de l’écran, ni Accès complet au disque.
+Seuls les deux raccourcis sont enregistrés ; aucune saisie ordinaire n’est observée ou
+conservée. Un conflit avec un raccourci existant produit une erreur visible.
 Les commandes bureau/Dock/barre peuvent relancer leur composant macOS ; les fichiers restent en place.
 
 ## Compiler le projet
@@ -77,7 +85,8 @@ Il n’existe actuellement **aucun téléchargement précompilé notarié**. La 
 
 ## Choix et limites
 
-- **Activité réduite en arrière-plan :** mesures CPU/GPU/mémoire/réseau toutes les deux secondes lorsque le panneau est ouvert ; lecture des disques toutes les cinq secondes lorsqu’elle est active. Aucun historique conservé.
+- **Clavier :** seuls les raccourcis explicitement enregistrés sont reçus. Arrêt au verrouillage/à la veille et reprise après déverrouillage/réveil. Détection des écrans à l’ouverture, à l’activation des raccourcis et aux changements de configuration, sans interrogation périodique en arrière-plan.
+- **Activité réduite en arrière-plan :** mesures CPU/GPU/mémoire/réseau toutes les deux secondes lorsque le panneau est ouvert ; lecture des disques toutes les cinq secondes lorsqu’elle est active. La luminosité suit aussi les changements natifs pendant l’ouverture du panneau. Aucun historique conservé.
 - **Mesures explicites :** une valeur absente affiche `—`. La mémoire utilisée est estimée ; la pression mémoire correspond au niveau du système, pas à un seuil déduit du pourcentage occupé. Le compteur GPU dépend du pilote.
 - **Compatibilité des écrans :** la luminosité Apple et le transport DDC Apple Silicon utilisent des interfaces Apple privées détectées dynamiquement. Elles peuvent changer selon macOS. Le contrôle matériel dépend de l’écran, de la connexion et de l’activation de DDC/CI. Le DDC externe est actuellement implémenté pour Apple Silicon.
 - **Atténuation logicielle :** elle modifie les tables de rendu de l’image, sans réduire le rétroéclairage ou la consommation de l’écran. Elle est temporaire et restaurée en quittant si MacPanel possède encore le réglage appliqué. D’autres utilitaires d’écran peuvent interagir avec elle.
@@ -94,7 +103,7 @@ Il n’existe actuellement **aucun téléchargement précompilé notarié**. La 
 - [Sécurité](SECURITY.md) — signaler un problème de sécurité
 
 Les tests XCTest couvrent les calculs, les mesures absentes/invalides, les protections d’éjection,
-les réponses DDC, la disposition du clavier, le placement multi-écrans et les assertions temporaires de veille.
+les réponses DDC, le routage des raccourcis et les bornes de luminosité, la disposition du clavier, le placement multi-écrans et les assertions temporaires de veille.
 La compatibilité matérielle doit toujours être vérifiée avec l’écran, le câble et le dock concernés.
 
 ## Crédits et licence

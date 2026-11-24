@@ -11,7 +11,14 @@ struct DisplayReading: Identifiable, Sendable {
 }
 
 actor BrightnessReader {
-    func read(_ id: CGDirectDisplayID) -> (Double?, Int32) {
+    private let readOverride: (@Sendable (CGDirectDisplayID) async -> (Double?, Int32))?
+
+    init(readOverride: (@Sendable (CGDirectDisplayID) async -> (Double?, Int32))? = nil) {
+        self.readOverride = readOverride
+    }
+
+    func read(_ id: CGDirectDisplayID) async -> (Double?, Int32) {
+        if let readOverride { return await readOverride(id) }
         var value = 0.0
         let mode = MPReadBrightness(id, &value)
         return (mode == 0 ? nil : value, mode)
@@ -20,7 +27,7 @@ actor BrightnessReader {
     func write(_ id: CGDirectDisplayID, value: Double, ddc: Bool) async -> Double? {
         guard MPWriteBrightness(id, value) else { return nil }
         try? await Task.sleep(for: .milliseconds(ddc ? 120 : 40))
-        let (actual, _) = read(id)
+        let (actual, _) = await read(id)
         return actual
     }
 }
@@ -30,11 +37,31 @@ final class DisplayController: ObservableObject {
     @Published private(set) var displays: [DisplayReading] = []
     @Published private(set) var busy = false
     @Published var error: String?
-    private let reader = BrightnessReader()
+    private let reader: BrightnessReader
+    private var observation: Task<Void, Never>?
+    private var revision: UInt64 = 0
+
+    init(reader: BrightnessReader = BrightnessReader()) { self.reader = reader }
     private var shades: [CGDirectDisplayID: SoftwareBrightness] = [:]
     private var refreshTask: Task<Void, Never>?
     private var pending: [CGDirectDisplayID: (DisplayReading, Double)] = [:]
     private var writing: Task<Void, Never>?
+    private var desiredBrightness: [CGDirectDisplayID: Double] = [:]
+
+    var hasKeyboardTarget: Bool {
+        let online = Set(NSScreen.screens.compactMap {
+            ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value
+        })
+        return displays.contains { !$0.isBuiltin && $0.brightness != nil && online.contains($0.id) }
+    }
+
+    func adjustExternal(_ direction: Int) {
+        for display in displays where !display.isBuiltin {
+            guard let current = desiredBrightness[display.id] ?? display.brightness,
+                let next = BrightnessStep.nextLevel(current, direction: direction, software: display.mode == .shade) else { continue }
+            set(display, to: next)
+        }
+    }
 
     func refresh() {
         guard !busy else { return }
@@ -63,10 +90,42 @@ final class DisplayController: ObservableObject {
                 results.append(screen)
             }
             self?.displays = results
+            if self?.busy == false { self?.desiredBrightness.removeAll() }
         }
     }
 
-    func stopReading() { refreshTask?.cancel(); refreshTask = nil }
+    func startObserving() {
+        guard observation == nil else { return }
+        observation = Task { [weak self] in
+            while !Task.isCancelled {
+                await self?.refreshLevels()
+                do { try await Task.sleep(for: .milliseconds(350)) }
+                catch { return }
+            }
+        }
+    }
+
+    private func refreshLevels() async {
+        guard !busy else { return }
+        let expectedRevision = revision
+        for screen in displays where screen.mode != .shade {
+            let (level, _) = await reader.read(screen.id)
+            guard !Task.isCancelled, !busy, revision == expectedRevision else { return }
+            guard let level, level.isFinite, (0...1).contains(level),
+                let index = displays.firstIndex(where: { $0.id == screen.id }) else { continue }
+            if displays[index].brightness != level { displays[index].brightness = level }
+            desiredBrightness.removeValue(forKey: screen.id)
+        }
+    }
+
+    func stopObserving() {
+        observation?.cancel(); observation = nil
+    }
+
+    func stopReading() {
+        refreshTask?.cancel(); refreshTask = nil
+        stopObserving()
+    }
 
     func set(_ display: DisplayReading, to value: Double) {
         guard value.isFinite, (0...1).contains(value),
@@ -74,11 +133,14 @@ final class DisplayController: ObservableObject {
                 ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value == display.id
             }) else { return }
         refreshTask?.cancel()
+        revision &+= 1
+        desiredBrightness[display.id] = value
         if display.mode == .shade {
             let level = min(1, max(0.2, value))
             if level >= 0.999 { shades.removeValue(forKey: display.id)?.restore() }
             else {
                 guard let dimming = shades[display.id] ?? SoftwareBrightness(display.id), dimming.set(level) else {
+                    desiredBrightness.removeValue(forKey: display.id)
                     error = "macOS a refusé l’atténuation de cet écran."
                     return
                 }
@@ -104,7 +166,7 @@ final class DisplayController: ObservableObject {
                 guard pending[id] == nil else { continue }
                 if let actual, let index = displays.firstIndex(where: { $0.id == id }) { displays[index].brightness = actual }
                 if let actual, abs(actual - value) < 0.03 { error = nil }
-                else { error = "L’écran n’a pas confirmé ce niveau de luminosité. Actualise ou vérifie DDC/CI dans le menu de l’écran." }
+                else { desiredBrightness.removeValue(forKey: id); error = "L’écran n’a pas confirmé ce niveau de luminosité. Actualise ou vérifie DDC/CI dans le menu de l’écran." }
             }
         }
     }
@@ -112,6 +174,7 @@ final class DisplayController: ObservableObject {
     func clearShades() {
         for dimming in shades.values { dimming.restore() }
         shades.removeAll()
+        desiredBrightness.removeAll()
     }
 
     func stop() {

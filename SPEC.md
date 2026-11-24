@@ -64,3 +64,38 @@ Pas de publication ou de push sans demande explicite.
 - Trois vues compactes. Les lectures périodiques cessent panneau fermé ; seules
   les notifications système et le raccourci enregistré restent en attente.
 - Aucun ajout audio, profil, suivi batterie ou fonction en doublon d'OpenDente.
+
+
+## 0.3 — raccourcis de luminosité externes
+
+- Option persistante et désactivable dans Écrans, sans nouvelle dépendance.
+- Contrôle + Option + ↑/↓ agit sur tous les écrans externes réglables par pas de 1/16 ;
+  minimum logiciel de 20 %. Les touches de luminosité natives restent inchangées.
+- Sans écran externe réglable, ne modifier aucun écran intégré.
+- Enregistrement Carbon de deux raccourcis précis ; conflit signalé, aucun événement
+  de saisie ordinaire écouté et aucune permission supplémentaire requise.
+- Routage par signature distincte du raccourci d’ouverture du panneau.
+- Écritures matérielles asynchrones et coalescées. Fonctionnement panneau fermé,
+  découverte événementielle des écrans, arrêt au verrouillage/veille/quitter.
+- Le propriétaire a choisi ce raccourci dédié afin d’éviter la permission très large
+  que macOS 27.3 présente pour l’interception des touches de luminosité natives.
+- MonitorControl retiré à la demande du propriétaire ; réglages conservés pour retour.
+
+## 0.4 — extensions quotidiennes (24/11/2026)
+
+| Module | Contrat | Vérification |
+|---|---|---|
+| panel-layout | Rubriques et commandes masquées/réordonnées, conservées localement ; réglages toujours accessibles | préférences isolées et relance |
+| app-usage | CPU par différence de compteurs, RAM résidente des apps et enfants accessibles de l’utilisateur ; panneau Système seulement | agrégation, PID réutilisé, arrêt de collecte |
+| display-sync | Option explicite, écran intégré source, décalage ±50 points par UUID ; lecture source 1/s même panneau fermé, suspension verrouillage/veille | bornes, reprise, écran réel |
+| display-audio | VCP DDC 0x62 seulement si confirmé, curseur en direct et écritures coalescées ; pas de changement de sortie audio | protocole et refus, matériel compatible |
+| disk-eject-all | Confirmation, identité revalidée avant chaque volume ; refuser internes/inconnus, rapport partiel sans forcer | volumes occupés et disparition |
+
+Ordre : préférences/mesures → éjection → écrans → interface → suites natives et build signé.
+Pas de mode présentation, pas de lanceur de scripts/Raccourcis ajouté. Aucun accès sensible nouveau.
+
+### Correction 0.4.1
+La liaison est bidirectionnelle dans le panneau ; les touches du Mac restent la source de suivi en arrière-plan. L’écart se règle explicitement et reste fixe. Le curseur externe est borné à la plage atteignable avec cet écart. Un écran sans réponse DDC valide pour le son n’affiche pas de faux curseur audio.
+
+### Finitions 0.4.2
+Les commandes par écran précèdent les options de liaison et de raccourcis. L’écart fixe se modifie explicitement par pas de 1 point avec −/+, entre −50 et +50, sans recalcul depuis les niveaux mesurés. La saturation d’un écran peut réduire l’écart effectivement visible. L’absence de capacité audio DDC ne crée plus de ligne audio dans le panneau.

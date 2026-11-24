@@ -1,6 +1,17 @@
 import XCTest
 
 final class DiskTests: XCTestCase {
+    func testGroupEjectionSkipsInternalVolumesAndReportsFailuresWithoutForcing() async {
+        let internalDisk = disk(internalState: true, ejectable: true)
+        let externalDisk = disk(internalState: false, ejectable: true)
+        let reader = DiskReader(listOverride: { [externalDisk] }, ejectOverride: { _ in
+            throw NSError(domain: "test", code: 1, userInfo: [NSLocalizedDescriptionKey: "Volume occupé"])
+        })
+        let failures = await reader.ejectAll([internalDisk, externalDisk])
+        XCTAssertEqual(failures.count, 1)
+        XCTAssertTrue(failures[0].contains("Volume occupé"))
+    }
+
     func testInternalAndUnknownVolumesCannotBeEjected() {
         for internalState: Bool? in [true, nil] {
             let disk = disk(internalState: internalState, ejectable: true)

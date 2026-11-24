@@ -13,9 +13,9 @@
 
 MacPanel brings the controls and readings you reach for into one menu bar app.
 Built with **SwiftUI and AppKit**, it runs locally, with no account, advertising,
-analytics, AI features or administrator helper. Hardware sampling stops when the panel closes.
+analytics, AI features or administrator helper. System sampling stops when the panel closes; optional display synchronization is described below.
 
-**Early release · 0.2.1.** The current interface is in French. Documentation is available in English and French.
+**Local release · 0.4.2.** The current interface is in French. Documentation is available in English and French.
 
 ## A look inside
 
@@ -38,17 +38,33 @@ Real screenshots of MacPanel on a MacBook Air M3. Display capabilities and stora
 | **Network** | Current incoming and outgoing Wi-Fi/Ethernet traffic, measured from local interface counters. No speed-test server or packet inspection. |
 | **Quick controls** | Dark appearance, desktop icons, Dock/menu bar auto-hide, and mute for a supported audio output. |
 | **Stay awake** | Temporary 15-, 30- or 60-minute sessions. Stop manually, at expiry, on lock, on sleep or when quitting. |
-| **Displays** | Per-display brightness, updated while moving the slider. Apple hardware control, external DDC/CI where supported, and clearly labelled software dimming otherwise. |
+| **Displays** | Per-display brightness, updated while moving the slider. Optional **Control + Option + ↑/↓** for all adjustable external screens, including with the panel closed. Apple hardware control, external DDC/CI where supported, and clearly labelled software dimming otherwise. |
 | **Storage** | Mounted volumes, used/total capacity and free space, opening in Finder, and ejection of eligible external volumes. |
 | **Everyday access** | Configurable global shortcut, default **Control + Option + M**, and optional launch at login without opening the panel. |
+
+## New in 0.4
+
+- **System:** five apps ranked by CPU or resident memory, including readable child processes. CPU 100% means one core; shared memory may be counted more than once. No app arguments, paths, window contents or usage history are stored.
+- **Panel customization:** hide/reorder sections and quick controls, persist choices, and keep settings accessible.
+- **Displays:** optional linked brightness sliders: either slider controls the group, with a persistent fixed ±50-point offset per display UUID. The fixed offset uses explicit −/+ buttons; brightness changes never rewrite it. Equal percentages do not guarantee equal perceived luminance, and limits can reduce the visible difference.
+- **Display audio:** live DDC/CI speaker volume when supported (VCP 0x62). Shown only when the monitor reports support; otherwise no empty audio control or warning is displayed. Does not change the Mac’s audio output or fall back to system volume.
+- **Disks:** confirmed batch ejection without forcing busy volumes, with partial-failure reporting.
+
+Enabled synchronization reads the built-in display roughly once per second even with the panel closed, and suspends on lock/sleep. Other telemetry remains limited to the visible panel; app counters also stop outside System or when their section is hidden.
 
 ## Use it
 
 Launch MacPanel from Applications and click the **three-sliders icon** in the menu bar, or press **⌃⌥M**.
-Switch between **Système**, **Écrans** and **Disques**. Change or disable the shortcut in the System view.
+Switch between **Système**, **Écrans** and **Disques**. Change or disable the shortcut in the System view. In Displays, brightness controls come first; linking and keyboard options are grouped underneath.
 
 The first dark-mode change may ask permission to automate **System Events**.
-MacPanel does not require Accessibility, Screen Recording or Full Disk Access for these features.
+Enable **Raccourcis de luminosité externe** in Displays to use **⌃⌥↑** to brighten and
+**⌃⌥↓** to dim all adjustable external screens. Each press changes the level by 1/16;
+software dimming stops at 20%. Ordinary brightness keys stay entirely under macOS control.
+With linking enabled and a built-in screen available, brightness adjustments control the linked group. Otherwise the dedicated shortcuts affect only external screens. With no adjustable external screen attached, they make no display change.
+MacPanel does not need Accessibility, System & App Protection Override, Input Monitoring,
+Screen Recording or Full Disk Access for this feature. It registers only the two shortcuts;
+it does not observe or record ordinary typing. Conflicting shortcuts produce a visible error.
 Desktop/Dock/menu bar changes may restart their macOS interface component; files are not moved or deleted.
 
 ## Build from source
@@ -79,7 +95,8 @@ There is currently **no notarized prebuilt download**. Local development signing
 
 ## Design choices and limits
 
-- **Small background footprint:** CPU/GPU/memory/network sampling runs every two seconds while the panel is open; disk reads run every five seconds while active. No history is retained.
+- **Keyboard privacy:** only explicitly registered shortcut commands are received. The handler is stopped on lock/sleep and resumed after unlock/wake. Display discovery runs on opening, enabling shortcuts and display changes, without periodic background discovery. Optional linked brightness reads the built-in level once per second while awake and unlocked.
+- **Small background footprint:** CPU/GPU/memory/network sampling runs every two seconds while the panel is open; disk reads run every five seconds while active. Display brightness readings also follow native changes while the panel is open. No history is retained.
 - **Honest readings:** unavailable counters show `—`. Memory usage is an estimate; memory pressure is the system’s own level, not a threshold inferred from RAM percentage. GPU values depend on the driver.
 - **Display compatibility:** Apple brightness and Apple Silicon DDC transport use dynamically detected private Apple interfaces. They may change between macOS versions. Hardware DDC depends on the monitor, connection and DDC/CI setting. External DDC is currently implemented for Apple Silicon.
 - **Software dimming:** changes the image transfer tables, not the backlight or power consumption. It is temporary, is restored on quit when MacPanel still owns the applied setting, and may interact with other display utilities.
@@ -96,8 +113,8 @@ There is currently **no notarized prebuilt download**. Local development signing
 - [Security](SECURITY.md) — reporting a security issue
 
 The native XCTest suite covers calculations, invalid/missing readings, disk ejection guards,
-DDC response validation, keyboard layout mapping, multi-display placement and temporary sleep assertions.
-Hardware support still requires testing with the actual monitor, cable and dock.
+DDC response validation, shortcut routing and brightness bounds, keyboard layout mapping, multi-display placement and temporary sleep assertions.
+Hardware support still requires testing with the actual monitor, cable and dock. The current local release passes 42 native tests. Linked sliders were checked on the development Mac; that external connection supports software dimming, but returned no valid DDC brightness or audio response.
 
 ## Credits and license
 

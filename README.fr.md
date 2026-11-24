@@ -18,15 +18,40 @@ fonction d’IA ou service administrateur. Les mesures système s’arrêtent à
 ## Aperçu
 
 <table>
-  <tr><th>Système</th><th>Écrans</th><th>Disques</th></tr>
+  <tr><th>Système</th><th>Écrans</th><th>Stockage</th></tr>
   <tr>
-    <td><img src="docs/images/system-dark.png" width="270" alt="CPU, RAM, GPU, pression mémoire, débits réseau et commandes rapides"></td>
-    <td><img src="docs/images/displays-dark.png" width="270" alt="Curseurs indépendants pour les écrans intégré et externe"></td>
-    <td><img src="docs/images/disks-dark.png" width="270" alt="Espace disponible et accès au volume dans Finder"></td>
+    <td><a href="docs/images/system-dark.png"><img src="docs/images/system-dark.png" width="270" alt="Commandes rapides, CPU/RAM/GPU, pression mémoire et classement RAM en mode sombre"></a></td>
+    <td><a href="docs/images/displays-dark.png"><img src="docs/images/displays-dark.png" width="270" alt="Luminosité liée des écrans intégré et externe avec écart fixe en mode sombre"></a></td>
+    <td><a href="docs/images/disks-dark.png"><img src="docs/images/disks-dark.png" width="270" alt="Stockage utilisé, total et libre en mode sombre"></a></td>
   </tr>
 </table>
 
-Captures réelles de MacPanel sur un MacBook Air M3. Les capacités des écrans et les mesures de stockage dépendent du matériel.
+MacPanel **0.4.2** · Interface française · Mode sombre. Cliquer sur une capture pour l’ouvrir à sa résolution d’origine.
+
+<details>
+<summary><strong>Voir le mode clair et les autres commandes</strong></summary>
+
+<table>
+  <tr><th>Système</th><th>Écrans</th><th>Stockage</th></tr>
+  <tr>
+    <td><a href="docs/images/system-light.png"><img src="docs/images/system-light.png" width="270" alt="Commandes rapides et mesures système en mode clair"></a></td>
+    <td><a href="docs/images/displays-light.png"><img src="docs/images/displays-light.png" width="270" alt="Curseurs de luminosité liés et options de clavier en mode clair"></a></td>
+    <td><a href="docs/images/disks-light.png"><img src="docs/images/disks-light.png" width="270" alt="Stockage utilisé, total et libre en mode clair"></a></td>
+  </tr>
+</table>
+
+<table>
+  <tr><th>Activité des apps</th><th>Personnalisation</th><th>Maintien éveillé</th></tr>
+  <tr>
+    <td><a href="docs/images/activity-dark.png"><img src="docs/images/activity-dark.png" width="270" alt="Classement CPU des apps et mesures système locales"></a></td>
+    <td><a href="docs/images/customization-dark.png"><img src="docs/images/customization-dark.png" width="270" alt="Ordre et visibilité des rubriques et commandes, avec ouverture à la connexion"></a></td>
+    <td><a href="docs/images/awake-light.png"><img src="docs/images/awake-light.png" width="270" alt="Choix de 15, 30 ou 60 minutes pour le maintien éveillé temporaire"></a></td>
+  </tr>
+</table>
+
+</details>
+
+Neuf captures réelles fournies par JulienEsbt le 24 novembre 2026, reprises sans retouche. Les capacités des écrans et les mesures dépendent du matériel. [Provenance et images réutilisables](docs/images/README.md).
 
 ## Fonctionnalités
 

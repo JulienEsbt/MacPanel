@@ -23,6 +23,13 @@ struct DiskVolume: Identifiable, Sendable {
 }
 
 actor DiskReader {
+    private let listOverride: (@Sendable () -> [DiskVolume])?
+    private let ejectOverride: (@Sendable (DiskVolume) throws -> Void)?
+
+    init(listOverride: (@Sendable () -> [DiskVolume])? = nil, ejectOverride: (@Sendable (DiskVolume) throws -> Void)? = nil) {
+        self.listOverride = listOverride; self.ejectOverride = ejectOverride
+    }
+
     func eject(_ disk: DiskVolume) throws {
         guard let current = volumes().first(where: { $0.id == disk.id }),
             current.canEject, current.uuid == disk.uuid else {
@@ -30,10 +37,23 @@ actor DiskReader {
                 userInfo: [NSLocalizedDescriptionKey: "Ce volume n’est plus disponible."])
         }
         // NSWorkspace's ejection API is synchronous: keep it off the UI actor.
-        try NSWorkspace.shared.unmountAndEjectDevice(at: current.url)
+        if let ejectOverride { try ejectOverride(current) }
+        else { try NSWorkspace.shared.unmountAndEjectDevice(at: current.url) }
+    }
+
+    func ejectAll(_ targets: [DiskVolume]) -> [String] {
+        var failures: [String] = []
+        for target in targets where target.canEject {
+            // A previous ejection can remove several volumes on the same device.
+            guard volumes().contains(where: { $0.id == target.id }) else { continue }
+            do { try eject(target) }
+            catch { failures.append("\(target.name) : \(error.localizedDescription)") }
+        }
+        return failures
     }
 
     func volumes() -> [DiskVolume] {
+        if let listOverride { return listOverride() }
         let keys: Set<URLResourceKey> = [.volumeNameKey, .volumeUUIDStringKey, .volumeTotalCapacityKey,
             .volumeAvailableCapacityKey,
             .volumeIsInternalKey, .volumeIsEjectableKey, .volumeIsBrowsableKey]
@@ -65,6 +85,7 @@ final class DiskController: ObservableObject {
     @Published private(set) var volumes: [DiskVolume] = []
     @Published private(set) var ejecting: String?
     @Published var error: String?
+    @Published private(set) var notice: String?
     private let reader = DiskReader()
     private var polling: Task<Void, Never>?
 
@@ -87,6 +108,7 @@ final class DiskController: ObservableObject {
     func eject(_ disk: DiskVolume) {
         guard disk.canEject, ejecting == nil else { return }
         ejecting = disk.id
+        notice = nil
         Task {
             defer { ejecting = nil }
             // Refresh identity before acting on a path which might have been reused.
@@ -100,6 +122,19 @@ final class DiskController: ObservableObject {
                 volumes = await reader.volumes()
                 error = nil
             } catch { self.error = "Éjection refusée : \(error.localizedDescription)" }
+        }
+    }
+
+    func ejectAll() {
+        let targets = volumes.filter(\.canEject)
+        guard ejecting == nil, !targets.isEmpty else { return }
+        ejecting = "all"; error = nil; notice = nil
+        Task {
+            defer { ejecting = nil }
+            let failures = await reader.ejectAll(targets)
+            volumes = await reader.volumes()
+            if failures.isEmpty { notice = "Éjection terminée. Tu peux débrancher les disques éjectés." }
+            else { error = "Éjection incomplète — \(failures.joined(separator: " · "))" }
         }
     }
 }

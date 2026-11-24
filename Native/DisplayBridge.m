@@ -3,10 +3,32 @@
 #import <dlfcn.h>
 #import <math.h>
 #import <unistd.h>
+#import <libproc.h>
+
+NSArray<NSDictionary<NSString *, NSNumber *> *> *MPProcessCounters(void) {
+    int bytes = proc_listpids(PROC_ALL_PIDS, 0, NULL, 0);
+    if (bytes <= 0 || bytes > 4 * 1024 * 1024) return @[];
+    int capacity = bytes + 4096;
+    pid_t *pids = calloc(1, (size_t)capacity);
+    if (!pids) return @[];
+    int count = proc_listpids(PROC_ALL_PIDS, 0, pids, capacity) / (int)sizeof(pid_t);
+    NSMutableArray *result = [NSMutableArray array];
+    for (int i = 0; i < count; i++) {
+        struct proc_taskallinfo info = {0};
+        if (pids[i] <= 0 || proc_pidinfo(pids[i], PROC_PIDTASKALLINFO, 0, &info, sizeof(info)) != sizeof(info) ||
+            info.pbsd.pbi_uid != getuid()) continue;
+        [result addObject:@{@"pid": @(pids[i]), @"parent": @(info.pbsd.pbi_ppid),
+            @"started": @(info.pbsd.pbi_start_tvsec * 1000000 + info.pbsd.pbi_start_tvusec),
+            @"cpu": @(info.ptinfo.pti_total_user + info.ptinfo.pti_total_system),
+            @"memory": @(info.ptinfo.pti_resident_size)}];
+    }
+    free(pids);
+    return result;
+}
 
 // DDC framing and Apple Silicon framebuffer/proxy matching adapted from
 // waydabber/m1ddc (MIT), commit 9d75fb6c407ac60dc77a9e32c43d60fd0e6d1612.
-// See Resources/m1ddc-LICENSE.txt. Only luminance (VCP 0x10) is exposed here.
+// See Resources/m1ddc-LICENSE.txt. Luminance (0x10) and speaker volume (0x62) only.
 // Changes: bounded buffers, fixed packet lengths, explicit CF/IO releases,
 // dynamic symbol detection and no CLI, EDID parser, input switching or power commands.
 typedef CFTypeRef (*CreateService)(CFAllocatorRef, io_service_t);
@@ -93,8 +115,12 @@ static CFTypeRef copyTransport(CGDirectDisplayID display, uint32_t *chip) {
 }
 
 bool MPDecodeBrightnessReply(const uint8_t *bytes, size_t size, uint16_t *current, uint16_t *maximum) {
+    return MPDecodeVCPReply(bytes, size, 0x10, current, maximum);
+}
+
+bool MPDecodeVCPReply(const uint8_t *bytes, size_t size, uint8_t code, uint16_t *current, uint16_t *maximum) {
     if (!bytes || size < 11 || !current || !maximum || bytes[0] != 0x6E || bytes[1] != 0x88 ||
-        bytes[2] != 2 || bytes[3] != 0 || bytes[4] != 0x10) return false;
+        bytes[2] != 2 || bytes[3] != 0 || bytes[4] != code || (code != 0x10 && code != 0x62)) return false;
     uint8_t checksum = 0x50;
     for (size_t i = 0; i < 10; i++) checksum ^= bytes[i];
     if (checksum != bytes[10]) return false;
@@ -105,9 +131,9 @@ bool MPDecodeBrightnessReply(const uint8_t *bytes, size_t size, uint16_t *curren
     return true;
 }
 
-static bool readDDC(CFTypeRef service, uint32_t chip, uint16_t *current, uint16_t *maximum) {
+static bool readDDC(CFTypeRef service, uint32_t chip, uint8_t code, uint16_t *current, uint16_t *maximum) {
     for (int attempt = 0; attempt < 3; attempt++) {
-        uint8_t request[4] = {0x82, 0x01, 0x10, 0};
+        uint8_t request[4] = {0x82, 0x01, code, 0};
         request[3] = 0x6E ^ 0x51 ^ request[0] ^ request[1] ^ request[2];
         IOReturn sent = writeI2C(service, chip, 0x51, request, sizeof(request));
         usleep(10000);
@@ -117,7 +143,7 @@ static bool readDDC(CFTypeRef service, uint32_t chip, uint16_t *current, uint16_
         uint8_t reply[12] = {0};
         IOReturn received = readI2C(service, chip, 0x51, reply, sizeof(reply));
         if (received == kIOReturnSuccess &&
-            MPDecodeBrightnessReply(reply, sizeof(reply), current, maximum)) return true;
+            MPDecodeVCPReply(reply, sizeof(reply), code, current, maximum)) return true;
         usleep(50000);
     }
     return false;
@@ -135,7 +161,7 @@ int MPReadBrightness(CGDirectDisplayID display, double *value) {
     CFTypeRef service = copyTransport(display, &chip);
     if (!service) return 0;
     uint16_t current, maximum;
-    bool success = readDDC(service, chip, &current, &maximum);
+    bool success = readDDC(service, chip, 0x10, &current, &maximum);
     CFRelease(service);
     if (!success) return 0;
     *value = (double)current / maximum;
@@ -152,10 +178,41 @@ bool MPWriteBrightness(CGDirectDisplayID display, double value) {
     CFTypeRef service = copyTransport(display, &chip);
     if (!service) return false;
     uint16_t current, maximum;
-    bool success = readDDC(service, chip, &current, &maximum);
+    bool success = readDDC(service, chip, 0x10, &current, &maximum);
     if (success) {
         uint16_t target = (uint16_t)lround(value * maximum);
         uint8_t request[6] = {0x84, 0x03, 0x10, target >> 8, target & 0xFF, 0};
+        request[5] = 0x6E ^ 0x51 ^ request[0] ^ request[1] ^ request[2] ^ request[3] ^ request[4];
+        success = writeI2C(service, chip, 0x51, request, sizeof(request)) == kIOReturnSuccess;
+    }
+    CFRelease(service);
+    return success;
+}
+
+bool MPReadDisplayVolume(CGDirectDisplayID display, double *value) {
+    if (!value || CGDisplayIsBuiltin(display) || !CGDisplayIsOnline(display)) return false;
+    loadSymbols();
+    uint32_t chip;
+    CFTypeRef service = copyTransport(display, &chip);
+    if (!service) return false;
+    uint16_t current, maximum;
+    bool success = readDDC(service, chip, 0x62, &current, &maximum);
+    CFRelease(service);
+    if (success) *value = (double)current / maximum;
+    return success;
+}
+
+bool MPWriteDisplayVolume(CGDirectDisplayID display, double value) {
+    if (!isfinite(value) || value < 0 || value > 1 || CGDisplayIsBuiltin(display) || !CGDisplayIsOnline(display)) return false;
+    loadSymbols();
+    uint32_t chip;
+    CFTypeRef service = copyTransport(display, &chip);
+    if (!service) return false;
+    uint16_t current, maximum;
+    bool success = readDDC(service, chip, 0x62, &current, &maximum);
+    if (success) {
+        uint16_t target = (uint16_t)lround(value * maximum);
+        uint8_t request[6] = {0x84, 0x03, 0x62, target >> 8, target & 0xFF, 0};
         request[5] = 0x6E ^ 0x51 ^ request[0] ^ request[1] ^ request[2] ^ request[3] ^ request[4];
         success = writeI2C(service, chip, 0x51, request, sizeof(request)) == kIOReturnSuccess;
     }

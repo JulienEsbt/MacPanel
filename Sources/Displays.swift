@@ -8,6 +8,7 @@ struct DisplayReading: Identifiable, Sendable {
     let isBuiltin: Bool
     var brightness: Double?
     var mode: Mode
+    var volume: Double? = nil
 }
 
 actor BrightnessReader {
@@ -30,6 +31,37 @@ actor BrightnessReader {
         let (actual, _) = await read(id)
         return actual
     }
+
+    func readVolume(_ id: CGDirectDisplayID) -> Double? {
+        var value = 0.0
+        return MPReadDisplayVolume(id, &value) ? value : nil
+    }
+    func writeVolume(_ id: CGDirectDisplayID, value: Double) async -> Double? {
+        guard MPWriteDisplayVolume(id, value) else { return nil }
+        try? await Task.sleep(for: .milliseconds(120))
+        return readVolume(id)
+    }
+}
+
+enum BrightnessSync {
+    static func fixedOffset(_ value: Double) -> Double? {
+        guard value.isFinite else { return nil }
+        return (min(0.5, max(-0.5, value)) * 100).rounded() / 100
+    }
+
+    static func sourceLevel(changedLevel: Double, offset: Double, isBuiltin: Bool) -> Double? {
+        guard changedLevel.isFinite, offset.isFinite, (0...1).contains(changedLevel) else { return nil }
+        return min(1, max(0, changedLevel - (isBuiltin ? 0 : offset)))
+    }
+
+    static func range(offset: Double, software: Bool, linked: Bool) -> ClosedRange<Double> {
+        let offset = offset.isFinite && linked ? min(0.5, max(-0.5, offset)) : 0
+        return max(software ? 0.2 : 0, offset)...min(1, 1 + offset)
+    }
+    static func level(source: Double, offset: Double, software: Bool) -> Double? {
+        guard source.isFinite, offset.isFinite, (0...1).contains(source) else { return nil }
+        return min(1, max(software ? 0.2 : 0, source + min(0.5, max(-0.5, offset))))
+    }
 }
 
 @MainActor
@@ -37,16 +69,78 @@ final class DisplayController: ObservableObject {
     @Published private(set) var displays: [DisplayReading] = []
     @Published private(set) var busy = false
     @Published var error: String?
+    @Published private(set) var syncEnabled: Bool
+    @Published private(set) var syncOffsets: [String: Double]
+    private let defaults: UserDefaults
+    private var synchronization: Task<Void, Never>?
+    private var lastSource: Double?
     private let reader: BrightnessReader
     private var observation: Task<Void, Never>?
     private var revision: UInt64 = 0
 
-    init(reader: BrightnessReader = BrightnessReader()) { self.reader = reader }
+    init(reader: BrightnessReader = BrightnessReader(), defaults: UserDefaults = .standard) {
+        self.reader = reader; self.defaults = defaults
+        syncEnabled = defaults.bool(forKey: "brightnessSyncEnabled")
+        syncOffsets = (defaults.dictionary(forKey: "brightnessSyncOffsets") as? [String: Double] ?? [:])
+            .filter { $0.value.isFinite && (-0.5...0.5).contains($0.value) }
+    }
     private var shades: [CGDirectDisplayID: SoftwareBrightness] = [:]
     private var refreshTask: Task<Void, Never>?
     private var pending: [CGDirectDisplayID: (DisplayReading, Double)] = [:]
     private var writing: Task<Void, Never>?
     private var desiredBrightness: [CGDirectDisplayID: Double] = [:]
+    private var pendingVolumes: [CGDirectDisplayID: Double] = [:]
+
+    private func stableKey(_ display: DisplayReading) -> String {
+        guard let uuid = CGDisplayCreateUUIDFromDisplayID(display.id)?.takeRetainedValue() else { return display.name }
+        return CFUUIDCreateString(nil, uuid) as String
+    }
+    func offset(for display: DisplayReading) -> Double { syncOffsets[stableKey(display)] ?? 0 }
+    func brightnessRange(for display: DisplayReading) -> ClosedRange<Double> {
+        BrightnessSync.range(offset: offset(for: display), software: display.mode == .shade,
+            linked: syncEnabled && !display.isBuiltin && displays.contains(where: { $0.isBuiltin && $0.brightness != nil }))
+    }
+    func setOffset(_ value: Double, for display: DisplayReading) {
+        guard let value = BrightnessSync.fixedOffset(value) else { return }
+        syncOffsets[stableKey(display)] = value
+        defaults.set(syncOffsets, forKey: "brightnessSyncOffsets")
+        if syncEnabled, let source = displays.first(where: \.isBuiltin)?.brightness,
+           let level = BrightnessSync.level(source: source, offset: value, software: display.mode == .shade) {
+            set(display, to: level, synchronized: true)
+        }
+    }
+    func setSyncEnabled(_ enabled: Bool) {
+        syncEnabled = enabled; defaults.set(enabled, forKey: "brightnessSyncEnabled")
+        suspendSynchronization()
+        if enabled { resumeSynchronization() }
+    }
+    func resumeSynchronization() {
+        guard syncEnabled, synchronization == nil else { return }
+        synchronization = Task { [weak self] in
+            while !Task.isCancelled {
+                await self?.syncFromBuiltin()
+                do { try await Task.sleep(for: .seconds(1)) } catch { return }
+            }
+        }
+    }
+    func suspendSynchronization() { synchronization?.cancel(); synchronization = nil; lastSource = nil }
+    private func syncFromBuiltin() async {
+        guard !busy, displays.contains(where: { !$0.isBuiltin && $0.brightness != nil }),
+            let source = displays.first(where: { $0.isBuiltin && $0.brightness != nil }) else { return }
+        let (level, _) = await reader.read(source.id)
+        guard !Task.isCancelled, !busy, let level else { return }
+        if let index = displays.firstIndex(where: { $0.id == source.id }) { displays[index].brightness = level }
+        if lastSource.map({ abs($0 - level) < 0.01 }) == true { return }
+        lastSource = level
+        synchronizeExternals(from: level)
+    }
+    private func synchronizeExternals(from level: Double) {
+        for display in displays where !display.isBuiltin && display.brightness != nil {
+            guard let target = BrightnessSync.level(source: level, offset: offset(for: display), software: display.mode == .shade),
+                abs((desiredBrightness[display.id] ?? display.brightness ?? target) - target) > 0.01 else { continue }
+            set(display, to: target, synchronized: true)
+        }
+    }
 
     var hasKeyboardTarget: Bool {
         let online = Set(NSScreen.screens.compactMap {
@@ -56,6 +150,12 @@ final class DisplayController: ObservableObject {
     }
 
     func adjustExternal(_ direction: Int) {
+        if syncEnabled, let source = displays.first(where: { $0.isBuiltin && $0.brightness != nil }),
+            let current = desiredBrightness[source.id] ?? source.brightness,
+            let next = BrightnessStep.nextLevel(current, direction: direction, software: false) {
+            set(source, to: next)
+            return
+        }
         for display in displays where !display.isBuiltin {
             guard let current = desiredBrightness[display.id] ?? display.brightness,
                 let next = BrightnessStep.nextLevel(current, direction: direction, software: display.mode == .shade) else { continue }
@@ -90,7 +190,14 @@ final class DisplayController: ObservableObject {
                 results.append(screen)
             }
             self?.displays = results
+            self?.lastSource = nil
             if self?.busy == false { self?.desiredBrightness.removeAll() }
+            // Audio capability discovery is independent of brightness availability.
+            for screen in screens where !screen.isBuiltin {
+                let volume = await reader.readVolume(screen.id)
+                guard !Task.isCancelled, let index = self?.displays.firstIndex(where: { $0.id == screen.id }) else { return }
+                self?.displays[index].volume = volume
+            }
         }
     }
 
@@ -127,14 +234,24 @@ final class DisplayController: ObservableObject {
         stopObserving()
     }
 
-    func set(_ display: DisplayReading, to value: Double) {
-        guard value.isFinite, (0...1).contains(value),
+    func set(_ display: DisplayReading, to requestedValue: Double, synchronized: Bool = false) {
+        guard requestedValue.isFinite, (0...1).contains(requestedValue),
             NSScreen.screens.contains(where: {
                 ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value == display.id
             }) else { return }
+        let range = brightnessRange(for: display)
+        let value = min(range.upperBound, max(range.lowerBound, requestedValue))
         refreshTask?.cancel()
         revision &+= 1
         desiredBrightness[display.id] = value
+        if syncEnabled && !synchronized {
+            if let source = displays.first(where: { $0.isBuiltin && $0.brightness != nil }),
+               let level = BrightnessSync.sourceLevel(changedLevel: value, offset: offset(for: display), isBuiltin: display.isBuiltin) {
+                lastSource = level
+                if !display.isBuiltin { set(source, to: level, synchronized: true) }
+                synchronizeExternals(from: level)
+            }
+        }
         if display.mode == .shade {
             let level = min(1, max(0.2, value))
             if level >= 0.999 { shades.removeValue(forKey: display.id)?.restore() }
@@ -153,12 +270,35 @@ final class DisplayController: ObservableObject {
         // Keep only the latest position per display while hardware is answering.
         // Sliders stay enabled; intermediate mouse events never create an I2C backlog.
         pending[display.id] = (display, value)
+        drainWrites()
+    }
+
+    func setVolume(_ display: DisplayReading, to value: Double) {
+        guard value.isFinite, (0...1).contains(value), !display.isBuiltin, display.volume != nil,
+            CGDisplayIsOnline(display.id) != 0 else { return }
+        pendingVolumes[display.id] = value
+        drainWrites()
+    }
+
+    private func drainWrites() {
         guard writing == nil else { return }
         busy = true
         writing = Task { [weak self] in
             guard let self else { return }
             defer { busy = false; writing = nil }
-            while let (id, request) = pending.first {
+            while !pending.isEmpty || !pendingVolumes.isEmpty {
+                if let (id, value) = pendingVolumes.first {
+                    pendingVolumes.removeValue(forKey: id)
+                    let actual = await reader.writeVolume(id, value: value)
+                    guard !Task.isCancelled else { return }
+                    if pendingVolumes[id] != nil { continue }
+                    if let actual, let index = displays.firstIndex(where: { $0.id == id }) {
+                        displays[index].volume = actual
+                        error = abs(actual - value) < 0.03 ? nil : "L’écran n’a pas confirmé ce volume."
+                    } else { error = "Le réglage du volume de l’écran a échoué. Vérifie DDC/CI et la connexion." }
+                    continue
+                }
+                guard let (id, request) = pending.first else { break }
                 pending.removeValue(forKey: id)
                 let (display, value) = request
                 let actual = await reader.write(id, value: value, ddc: display.mode == .ddc)
@@ -178,8 +318,9 @@ final class DisplayController: ObservableObject {
     }
 
     func stop() {
+        suspendSynchronization()
         stopReading()
-        writing?.cancel(); writing = nil; pending.removeAll()
+        writing?.cancel(); writing = nil; pending.removeAll(); pendingVolumes.removeAll()
         clearShades()
     }
 }

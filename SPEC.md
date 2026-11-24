@@ -80,3 +80,22 @@ Pas de publication ou de push sans demande explicite.
 - Le propriétaire a choisi ce raccourci dédié afin d’éviter la permission très large
   que macOS 27.3 présente pour l’interception des touches de luminosité natives.
 - MonitorControl retiré à la demande du propriétaire ; réglages conservés pour retour.
+
+## 0.4 — extensions quotidiennes (24/11/2026)
+
+| Module | Contrat | Vérification |
+|---|---|---|
+| panel-layout | Rubriques et commandes masquées/réordonnées, conservées localement ; réglages toujours accessibles | préférences isolées et relance |
+| app-usage | CPU par différence de compteurs, RAM résidente des apps et enfants accessibles de l’utilisateur ; panneau Système seulement | agrégation, PID réutilisé, arrêt de collecte |
+| display-sync | Option explicite, écran intégré source, décalage ±50 points par UUID ; lecture source 1/s même panneau fermé, suspension verrouillage/veille | bornes, reprise, écran réel |
+| display-audio | VCP DDC 0x62 seulement si confirmé, curseur en direct et écritures coalescées ; pas de changement de sortie audio | protocole et refus, matériel compatible |
+| disk-eject-all | Confirmation, identité revalidée avant chaque volume ; refuser internes/inconnus, rapport partiel sans forcer | volumes occupés et disparition |
+
+Ordre : préférences/mesures → éjection → écrans → interface → suites natives et build signé.
+Pas de mode présentation, pas de lanceur de scripts/Raccourcis ajouté. Aucun accès sensible nouveau.
+
+### Correction 0.4.1
+La liaison est bidirectionnelle dans le panneau ; les touches du Mac restent la source de suivi en arrière-plan. L’écart se règle explicitement et reste fixe. Le curseur externe est borné à la plage atteignable avec cet écart. Un écran sans réponse DDC valide pour le son n’affiche pas de faux curseur audio.
+
+### Finitions 0.4.2
+Les commandes par écran précèdent les options de liaison et de raccourcis. L’écart fixe se modifie explicitement par pas de 1 point avec −/+, entre −50 et +50, sans recalcul depuis les niveaux mesurés. La saturation d’un écran peut réduire l’écart effectivement visible. L’absence de capacité audio DDC ne crée plus de ligne audio dans le panneau.

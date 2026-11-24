@@ -34,3 +34,24 @@ remains separate from this delivery.
 - [x] Short caption and secondary help in tooltip
 - [x] 34 native tests passed; owner confirmed live native-key updates
 - [x] Signed Release installed and relaunched; source and docs remain local pending Git signing
+
+## 0.4 — daily extensions
+
+- [x] Section/control order and visibility, persisted and resettable
+- [x] CPU/resident-memory app ranking with accessible children and PID reuse guard
+- [x] Stop app collection on panel close, hidden section and non-System tabs
+- [x] Optional linked brightness sliders and explicit per-display fixed offsets
+- [x] Serialized, capability-checked DDC speaker-volume writes
+- [x] Confirmed batch ejection, identity revalidation and partial errors
+- [x] Native logic tests and signed Release build
+- [x] Linked sliders verified on the current external screen; DDC audio unsupported on this connection
+- [x] Signed local installation with one app copy in Applications
+- [x] Live linked-slider observation completed; final 0.4.2 layout checked separately below
+
+## 0.4.2 — final display polish
+
+- [x] Brightness controls before persistent linking/keyboard options
+- [x] Explicit fixed-offset stepper, whole-point persistence
+- [x] Hide unsupported display-audio row, retain compatible hardware support
+- [x] 42 native tests, signed Release installed and running
+- [x] Final layout observed; fixed +21-point offset unchanged from either brightness slider

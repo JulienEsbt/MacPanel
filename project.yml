@@ -19,8 +19,8 @@ targets:
       path: Info.plist
       properties:
         CFBundleDisplayName: MacPanel
-        CFBundleShortVersionString: '0.3.1'
-        CFBundleVersion: '5'
+        CFBundleShortVersionString: '0.4.2'
+        CFBundleVersion: '8'
         CFBundleIconFile: AppIcon
         LSUIElement: true
         NSAppleEventsUsageDescription: MacPanel utilise Événements système uniquement pour changer le mode clair ou sombre à ta demande.
@@ -41,6 +41,9 @@ targets:
       - Sources/PanelShortcut.swift
       - Sources/PanelPlacement.swift
       - Sources/BrightnessKeys.swift
+      - Sources/PanelPreferences.swift
+      - Sources/SystemControls.swift
+      - Sources/AppUsage.swift
       - Native
       - Tests
     settings:

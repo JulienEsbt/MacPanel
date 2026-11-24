@@ -11,9 +11,9 @@
 
 MacPanel rassemble les commandes et les mesures utiles du Mac dans une seule application de barre des menus.
 Développée avec **SwiftUI et AppKit**, elle fonctionne localement, sans compte, publicité, analyse d’usage,
-fonction d’IA ou service administrateur. Les mesures matérielles s’arrêtent à la fermeture du panneau.
+fonction d’IA ou service administrateur. Les mesures système s’arrêtent à la fermeture du panneau ; la synchronisation optionnelle des écrans est détaillée plus bas.
 
-**Version publique initiale · 0.3.1.** L’interface est actuellement en français ; la documentation existe en français et en anglais.
+**Version locale · 0.4.2.** L’interface est actuellement en français ; la documentation existe en français et en anglais.
 
 ## Aperçu
 
@@ -40,17 +40,27 @@ Captures réelles de MacPanel sur un MacBook Air M3. Les capacités des écrans 
 | **Stockage** | Volumes montés, espace utilisé sur le total et espace libre, ouverture dans Finder et éjection des volumes externes compatibles. |
 | **Accès quotidien** | Raccourci configurable, **Contrôle + Option + M** par défaut, et ouverture à la connexion sans afficher le panneau. |
 
+## Nouveautés 0.4
+
+- **Système :** cinq apps principales classées par CPU ou mémoire résidente, avec leurs enfants accessibles. CPU à 100 % = un cœur ; RAM partagée potentiellement comptée plusieurs fois. Aucun chemin, argument, contenu de fenêtre ou historique d’app conservé.
+- **Personnaliser le panneau :** masquer et réordonner les rubriques et commandes ; choix conservés entre relances. L’accès aux réglages reste disponible.
+- **Écrans :** option « Lier les curseurs de luminosité » : chaque curseur règle le groupe, avec un écart fixe individuel ±50 points conservé par UUID. L’écart se règle avec les boutons −/+ ; déplacer la luminosité ne le réécrit pas. Des pourcentages identiques ne garantissent pas la même luminance perçue et les limites peuvent réduire l’écart visible.
+- **Audio écran :** curseur DDC/CI du volume lorsque l’écran le confirme (VCP 0x62). Affiché uniquement si l’écran confirme sa compatibilité ; sinon, aucune ligne audio inutile. Aucun changement de sortie audio ni repli logiciel sur le son du Mac.
+- **Disques :** éjection groupée après confirmation, sans forcer les volumes occupés ; compte rendu d’échec partiel.
+
+La synchronisation activée lit l’écran intégré environ une fois par seconde même panneau fermé ; elle s’arrête en veille/verrouillage. Les autres mesures restent limitées au panneau visible. La liste des apps s’arrête aussi hors de l’onglet Système ou lorsque sa rubrique est masquée.
+
 ## Utilisation
 
 Lancez MacPanel depuis Applications, puis cliquez sur l’icône des **trois curseurs** dans la barre des menus ou utilisez **⌃⌥M**.
-Les vues **Système**, **Écrans** et **Disques** regroupent les fonctions. Le raccourci peut être changé ou désactivé dans Système.
+Les vues **Système**, **Écrans** et **Disques** regroupent les fonctions. Le raccourci peut être changé ou désactivé dans Système. Dans Écrans, les curseurs apparaissent en premier ; la liaison et les options de clavier sont regroupées dessous.
 
 Le premier changement d’apparence peut demander l’autorisation de piloter **Événements système**.
 Activez **Raccourcis de luminosité externe** dans Écrans pour utiliser **⌃⌥↑**
 pour éclaircir et **⌃⌥↓** pour assombrir tous les écrans externes réglables. Chaque appui
 change le niveau de 1/16 ; l’atténuation logicielle s’arrête à 20 % minimum. Les touches
 habituelles de luminosité restent entièrement gérées par macOS. Sans écran externe
-réglable connecté, ces raccourcis ne changent aucun écran.
+réglable connecté, ces raccourcis ne changent aucun écran. Lorsque la liaison est activée avec un écran intégré disponible, les commandes de luminosité pilotent le groupe lié ; sinon, les raccourcis dédiés ne visent que les externes.
 Cette fonction ne demande ni Accessibilité, ni System & App Protection Override,
 ni Surveillance de l’entrée, ni Enregistrement de l’écran, ni Accès complet au disque.
 Seuls les deux raccourcis sont enregistrés ; aucune saisie ordinaire n’est observée ou
@@ -85,7 +95,7 @@ Il n’existe actuellement **aucun téléchargement précompilé notarié**. La 
 
 ## Choix et limites
 
-- **Clavier :** seuls les raccourcis explicitement enregistrés sont reçus. Arrêt au verrouillage/à la veille et reprise après déverrouillage/réveil. Détection des écrans à l’ouverture, à l’activation des raccourcis et aux changements de configuration, sans interrogation périodique en arrière-plan.
+- **Clavier :** seuls les raccourcis explicitement enregistrés sont reçus. Arrêt au verrouillage/à la veille et reprise après déverrouillage/réveil. Détection des écrans à l’ouverture, à l’activation des raccourcis et aux changements de configuration, sans détection périodique en arrière-plan. La liaison optionnelle lit le niveau intégré une fois par seconde lorsque le Mac est éveillé et déverrouillé.
 - **Activité réduite en arrière-plan :** mesures CPU/GPU/mémoire/réseau toutes les deux secondes lorsque le panneau est ouvert ; lecture des disques toutes les cinq secondes lorsqu’elle est active. La luminosité suit aussi les changements natifs pendant l’ouverture du panneau. Aucun historique conservé.
 - **Mesures explicites :** une valeur absente affiche `—`. La mémoire utilisée est estimée ; la pression mémoire correspond au niveau du système, pas à un seuil déduit du pourcentage occupé. Le compteur GPU dépend du pilote.
 - **Compatibilité des écrans :** la luminosité Apple et le transport DDC Apple Silicon utilisent des interfaces Apple privées détectées dynamiquement. Elles peuvent changer selon macOS. Le contrôle matériel dépend de l’écran, de la connexion et de l’activation de DDC/CI. Le DDC externe est actuellement implémenté pour Apple Silicon.
@@ -104,7 +114,7 @@ Il n’existe actuellement **aucun téléchargement précompilé notarié**. La 
 
 Les tests XCTest couvrent les calculs, les mesures absentes/invalides, les protections d’éjection,
 les réponses DDC, le routage des raccourcis et les bornes de luminosité, la disposition du clavier, le placement multi-écrans et les assertions temporaires de veille.
-La compatibilité matérielle doit toujours être vérifiée avec l’écran, le câble et le dock concernés.
+La compatibilité matérielle doit toujours être vérifiée avec l’écran, le câble et le dock concernés. La version locale passe 42 tests natifs. Les curseurs liés ont été vérifiés sur le Mac de développement ; sa connexion externe permet l’atténuation logicielle, mais ne fournit pas de réponse DDC valide pour la luminosité ou le son.
 
 ## Crédits et licence
 

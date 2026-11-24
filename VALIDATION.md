@@ -101,3 +101,29 @@ network client, root service or new security permission was added in 0.2.
 
 OpenDente and MonitorControl were not modified. Organize was removed at the user’s request;
 Homebrew also removed dependencies it classified as unneeded. No user documents were sorted or deleted.
+
+## 0.4.0 — 24/11/2026
+
+- Suite native : 39 tests réussis après intégration des nouvelles fonctions. Deux tests ciblés AppUsage réussis ensuite, dont la lecture du vrai processus de test (40 cas distincts au total).
+- Vérifications : ordre/visibilité et restauration des préférences ; regroupement CPU/RAM des enfants, réutilisation de PID, compteurs réels sans accès supplémentaire ; protection des volumes internes et rapport d’éjection refusée ; trames DDC volume et bornes de synchronisation.
+- Release signée avec l’identité Apple Development locale existante ; aucun nouveau certificat ni accès sensible.
+- Revue de cycle de vie : compteurs d’apps arrêtés panneau fermé, rubrique masquée ou autre onglet ; synchronisation opt-in suspendue en veille/verrouillage. Pas de nouvelle veille/redémarrage demandé.
+- Essais physiques de synchronisation/volume et éjection d’un vrai disque : non réalisés à ce stade. Dépendent de l’écran et de volumes disponibles ; les tests ne constituent pas cette preuve.
+- Sources sur feature/panel-and-display-controls. Modifications locales antérieures conservées, aucune publication ni signature Git contournée.
+
+## 0.4.1 — 24/11/2026
+
+- 41 tests natifs réussis, dont liaison depuis l’externe et bornes avec écart fixe positif/négatif.
+- Ancien comportement reproduit dans le panneau : Mac 85 % → externe 95 %, avec écart +10 ; saturation à 100 % au-dessus de 90 % côté Mac.
+- Écran actuel : transport DisplayPort, luminosité et volume sans réponse DDC/CI valide, y compris par interrogation directe du service. L’atténuation est logicielle ; Core Audio n’expose pas non plus de volume réglable pour la sortie DP Audio.
+- Aucun réglage audio ni pilote ajouté. Éjection d’un vrai disque toujours non essayée, aucun disque externe disponible.
+
+Installation et contrôle du panneau 0.4.1 (7) : externe réglé à 85 % → écran intégré lu à 75 %, puis intégré à 80 % → externe à 90 %, écart +10 points inchangé. Niveaux initiaux 100 % / 100 % rétablis. Le résultat externe est une atténuation logicielle, pas une mesure de rétroéclairage. Correction finale de l’étiquette de version pour utiliser le numéro du bundle ; Release recompilée/signée, installée et processus relancé. Pas d’autre essai matériel répété.
+
+## 0.4.2 — 24/11/2026
+
+- 42 tests natifs réussis. Nouveau cas : arrondi stable des écarts à un point, limites ±50 et rejet des nombres invalides.
+- Release signée compilée, signature stricte validée ; copie /Applications/MacPanel.app remplacée après fermeture propre et relancée, build 8.
+- Suppression du petit curseur d’écart au profit de −/+ ; les curseurs de luminosité ne modifient pas la préférence d’écart. Les saturations peuvent réduire la différence effectivement visible.
+- Options de liaison et de raccourcis déplacées sous les écrans ; aucune ligne audio lorsque la capacité DDC n’est pas confirmée.
+- Contrôle visuel 0.4.2 réalisé : commandes d’écran en premier, options en bas, aucune ligne audio indisponible. Écart +21 points conservé pendant externe 85 % → Mac 64 %, puis Mac 70 % → externe 91 %. Retour aux niveaux initiaux 100 % / 100 %. Aucun essai de charge/veille/redémarrage répété.

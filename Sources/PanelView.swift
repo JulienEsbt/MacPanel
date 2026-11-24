@@ -33,9 +33,13 @@ struct PanelView: View {
     @ObservedObject var displays: DisplayController
     @ObservedObject var shortcut: PanelShortcut
     @ObservedObject var brightnessKeys: BrightnessKeys
+    @ObservedObject var preferences: PanelPreferences
+    @ObservedObject var appUsage: AppUsageMonitor
     @State private var duration = 30
     @State private var awakeError: String?
     @State private var section = 0
+    @State private var customizing = false
+    @State private var sortAppsByMemory = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -48,10 +52,16 @@ struct PanelView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     header
                     if section == 0 {
-                    metrics
-                    telemetry
-                    commands
-                    awakeSection
+                    ForEach(preferences.visibleSections) { item in
+                        switch item {
+                        case .metrics: metrics
+                        case .telemetry: telemetry
+                        case .apps: applications
+                        case .commands: commands
+                        case .awake: awakeSection
+                        }
+                    }
+                    customization
                     startup
                     Picker("Raccourci", selection: Binding(get: { shortcut.selection }, set: { value in shortcut.configure(value) })) {
                         ForEach(PanelShortcut.labels.indices, id: \.self) { index in
@@ -79,7 +89,7 @@ struct PanelView: View {
             }
             Divider()
             HStack {
-                Label("Local · 0.3.1", systemImage: "checkmark.shield")
+                Label("Local · \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—")", systemImage: "checkmark.shield")
                     .font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button("Quitter") { NSApp.terminate(nil) }
@@ -90,6 +100,78 @@ struct PanelView: View {
         .frame(width: 392, height: 638)
         .background(.regularMaterial)
         .tint(.blue)
+        .onChange(of: section) { _, _ in updateAppSampling() }
+        .onChange(of: preferences.visibleSections) { _, _ in updateAppSampling() }
+        .onChange(of: appUsage.panelVisible) { _, _ in updateAppSampling() }
+        .onAppear { updateAppSampling() }
+        .onDisappear { appUsage.stop() }
+    }
+
+    private func updateAppSampling() {
+        if section == 0 && preferences.isVisible(.apps) { appUsage.start() }
+        else { appUsage.stop() }
+    }
+
+    private var applications: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Applications gourmandes").font(.callout.weight(.semibold))
+                Spacer()
+                Picker("Trier les applications", selection: $sortAppsByMemory) {
+                    Text("CPU").tag(false)
+                    Text("RAM").tag(true)
+                }.labelsHidden().pickerStyle(.segmented).frame(width: 100)
+            }
+            if appUsage.apps.isEmpty { Text("Lecture des compteurs…").font(.caption).foregroundStyle(.secondary) }
+            ForEach(appUsage.apps.sorted {
+                sortAppsByMemory ? $0.memory > $1.memory : ($0.cpu ?? -1) > ($1.cpu ?? -1)
+            }.prefix(5)) { app in
+                HStack {
+                    Text(app.name).lineLimit(1).truncationMode(.tail)
+                    Spacer(minLength: 8)
+                    Text(sortAppsByMemory ? ByteCountFormatter.string(fromByteCount: Int64(clamping: app.memory), countStyle: .memory) : percent(app.cpu))
+                        .monospacedDigit()
+                }.font(.caption)
+            }
+            Text("Apps et processus enfants accessibles. CPU : 100 % = un cœur. RAM résidente estimée ; mémoire partagée comptée plusieurs fois.")
+                .font(.caption2).foregroundStyle(.secondary)
+            Button("Moniteur d’activité", systemImage: "waveform.path.ecg") { appUsage.openActivityMonitor() }
+                .font(.caption)
+        }.padding(12).background(Color(nsColor: .controlBackgroundColor).opacity(0.75), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    private var customization: some View {
+        DisclosureGroup("Personnaliser le panneau", isExpanded: $customizing) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Rubriques").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                ForEach(preferences.sections) { item in
+                    HStack {
+                        Toggle(item.title, isOn: Binding(get: { preferences.isVisible(item) }, set: { preferences.setVisible(item, $0) }))
+                        Spacer()
+                        reorderButtons(first: preferences.sections.first == item, last: preferences.sections.last == item,
+                                       up: { preferences.move(item, by: -1) }, down: { preferences.move(item, by: 1) })
+                    }
+                }
+                Divider()
+                Text("Commandes rapides").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                ForEach(preferences.commandOrder) { command in
+                    HStack {
+                        Toggle(command.title, isOn: Binding(get: { preferences.visibleCommands.contains(command) }, set: { preferences.setCommandVisible(command, $0) }))
+                        Spacer()
+                        reorderButtons(first: preferences.commandOrder.first == command, last: preferences.commandOrder.last == command,
+                                       up: { preferences.moveCommand(command, by: -1) }, down: { preferences.moveCommand(command, by: 1) })
+                    }
+                }
+                Button("Rétablir la disposition") { preferences.reset() }
+            }.font(.caption).toggleStyle(.checkbox).padding(.top, 8)
+        }.font(.callout)
+    }
+
+    private func reorderButtons(first: Bool, last: Bool, up: @escaping () -> Void, down: @escaping () -> Void) -> some View {
+        HStack(spacing: 4) {
+            Button(action: up) { Image(systemName: "arrow.up") }.disabled(first).help("Monter").accessibilityLabel("Monter")
+            Button(action: down) { Image(systemName: "arrow.down") }.disabled(last).help("Descendre").accessibilityLabel("Descendre")
+        }.controlSize(.mini)
     }
 
     private var telemetry: some View {
@@ -151,7 +233,7 @@ struct PanelView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("COMMANDES RAPIDES").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
             VStack(spacing: 0) {
-                ForEach(QuickSwitch.allCases) { control in
+                ForEach(preferences.visibleCommands) { control in
                     Toggle(isOn: Binding(get: { controls.values[control] ?? false },
                         set: { controls.set(control, to: $0) })) {
                         Label(control.title, systemImage: control.symbol)
@@ -163,7 +245,7 @@ struct PanelView: View {
                     .help(controls.values[control] == nil && control == .muted
                         ? "La sortie audio actuelle ne permet pas cette commande." : control.help)
                     .padding(.horizontal, 12).padding(.vertical, 9)
-                    if control != QuickSwitch.allCases.last { Divider().padding(.leading, 12) }
+                    if control != preferences.visibleCommands.last { Divider().padding(.leading, 12) }
                 }
             }
             .background(Color(nsColor: .controlBackgroundColor).opacity(0.75), in: RoundedRectangle(cornerRadius: 10))

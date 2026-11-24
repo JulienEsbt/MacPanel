@@ -2,6 +2,44 @@ import XCTest
 import AppKit
 
 final class DisplayTests: XCTestCase {
+    func testFixedOffsetUsesWholePointsAndRejectsInvalidInput() {
+        XCTAssertEqual(BrightnessSync.fixedOffset(0.09999999999999998), 0.1)
+        XCTAssertEqual(BrightnessSync.fixedOffset(-0.20999999999999996), -0.21)
+        XCTAssertEqual(BrightnessSync.fixedOffset(1), 0.5)
+        XCTAssertEqual(BrightnessSync.fixedOffset(-1), -0.5)
+        XCTAssertNil(BrightnessSync.fixedOffset(.nan))
+        XCTAssertNil(BrightnessSync.fixedOffset(.infinity))
+    }
+
+    func testLinkedSliderUsesTheExternalOffsetWithoutChangingIt() throws {
+        XCTAssertEqual(try XCTUnwrap(BrightnessSync.sourceLevel(changedLevel: 0.7, offset: 0.1, isBuiltin: false)), 0.6, accuracy: 0.0001)
+        XCTAssertEqual(BrightnessSync.sourceLevel(changedLevel: 0.7, offset: 0.1, isBuiltin: true), 0.7)
+        XCTAssertEqual(BrightnessSync.sourceLevel(changedLevel: 0.05, offset: 0.1, isBuiltin: false), 0)
+        XCTAssertNil(BrightnessSync.sourceLevel(changedLevel: .nan, offset: 0, isBuiltin: false))
+        XCTAssertEqual(BrightnessSync.range(offset: 0.1, software: false, linked: true), 0.1...1)
+        XCTAssertEqual(BrightnessSync.range(offset: -0.1, software: false, linked: true), 0...0.9)
+        XCTAssertEqual(BrightnessSync.range(offset: 0.1, software: true, linked: false), 0.2...1)
+    }
+
+    func testSynchronizationBoundsAndOffsetsAreSafe() {
+        XCTAssertEqual(BrightnessSync.level(source: 0.6, offset: -0.1, software: false)!, 0.5, accuracy: 0.0001)
+        XCTAssertEqual(BrightnessSync.level(source: 0.9, offset: 0.5, software: false), 1)
+        XCTAssertEqual(BrightnessSync.level(source: 0.1, offset: -0.5, software: true), 0.2)
+        XCTAssertNil(BrightnessSync.level(source: .nan, offset: 0, software: false))
+        XCTAssertNil(BrightnessSync.level(source: 0.5, offset: .infinity, software: false))
+    }
+
+    func testVolumeRepliesCannotBeConfusedWithBrightnessOrUnsupportedVCP() {
+        var reply: [UInt8] = [0x6E, 0x88, 2, 0, 0x62, 0, 0, 100, 0, 35, 0]
+        reply[10] = reply.prefix(10).reduce(0x50, ^)
+        var current: UInt16 = 0, maximum: UInt16 = 0
+        XCTAssertTrue(MPDecodeVCPReply(reply, reply.count, 0x62, &current, &maximum))
+        XCTAssertEqual(current, 35)
+        XCTAssertFalse(MPDecodeVCPReply(reply, reply.count, 0x10, &current, &maximum))
+        XCTAssertFalse(MPDecodeVCPReply(reply, reply.count, 0xD6, &current, &maximum))
+        for value in [-1, 2, .nan, .infinity] { XCTAssertFalse(MPWriteDisplayVolume(0, value)) }
+    }
+
     func testMalformedGammaTablesAreRejectedBeforeCallingTheDisplayAPI() {
         XCTAssertFalse(GammaTable(red: [0, 1], green: [0], blue: [0, 1]).apply(0))
         XCTAssertFalse(GammaTable(red: [], green: [], blue: []).apply(0))
@@ -27,7 +65,8 @@ final class DisplayTests: XCTestCase {
         for (name, id) in screens {
             guard let id else { continue }
             let (brightness, mode) = await reader.read(id)
-            print("MacPanel display: \(name), backend=\(mode), brightness=\(String(describing: brightness))")
+            let volume = await reader.readVolume(id)
+            print("MacPanel display: \(name), backend=\(mode), brightness=\(String(describing: brightness)), speakerVolume=\(String(describing: volume))")
             if let brightness { XCTAssertTrue((0...1).contains(brightness)); XCTAssertTrue([1, 2].contains(mode)) }
             else { XCTAssertEqual(mode, 0) }
         }

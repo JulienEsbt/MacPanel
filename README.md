@@ -20,15 +20,40 @@ analytics, AI features or administrator helper. System sampling stops when the p
 ## A look inside
 
 <table>
-  <tr><th>System</th><th>Displays</th><th>Disks</th></tr>
+  <tr><th>System</th><th>Displays</th><th>Storage</th></tr>
   <tr>
-    <td><img src="docs/images/system-dark.png" width="270" alt="CPU, RAM, GPU, memory pressure, network rates and quick controls"></td>
-    <td><img src="docs/images/displays-dark.png" width="270" alt="Separate brightness sliders for the built-in and external displays"></td>
-    <td><img src="docs/images/disks-dark.png" width="270" alt="Available storage and a shortcut to open the volume in Finder"></td>
+    <td><a href="docs/images/system-dark.png"><img src="docs/images/system-dark.png" width="270" alt="Quick controls, CPU/RAM/GPU, memory pressure and app memory ranking in dark mode"></a></td>
+    <td><a href="docs/images/displays-dark.png"><img src="docs/images/displays-dark.png" width="270" alt="Linked built-in and external brightness controls with a fixed offset in dark mode"></a></td>
+    <td><a href="docs/images/disks-dark.png"><img src="docs/images/disks-dark.png" width="270" alt="Used, total and free storage in dark mode"></a></td>
   </tr>
 </table>
 
-Real screenshots of MacPanel on a MacBook Air M3. Display capabilities and storage readings depend on your setup.
+MacPanel **0.4.2** · French interface · Dark appearance. Click a screenshot to open it at full resolution.
+
+<details>
+<summary><strong>See light appearance and more controls</strong></summary>
+
+<table>
+  <tr><th>System</th><th>Displays</th><th>Storage</th></tr>
+  <tr>
+    <td><a href="docs/images/system-light.png"><img src="docs/images/system-light.png" width="270" alt="Quick controls and system readings in light mode"></a></td>
+    <td><a href="docs/images/displays-light.png"><img src="docs/images/displays-light.png" width="270" alt="Linked brightness sliders and keyboard options in light mode"></a></td>
+    <td><a href="docs/images/disks-light.png"><img src="docs/images/disks-light.png" width="270" alt="Used, total and free storage in light mode"></a></td>
+  </tr>
+</table>
+
+<table>
+  <tr><th>App activity</th><th>Panel customization</th><th>Stay awake</th></tr>
+  <tr>
+    <td><a href="docs/images/activity-dark.png"><img src="docs/images/activity-dark.png" width="270" alt="CPU app ranking and local system readings"></a></td>
+    <td><a href="docs/images/customization-dark.png"><img src="docs/images/customization-dark.png" width="270" alt="Reorder and hide sections or quick controls, with launch-at-login settings"></a></td>
+    <td><a href="docs/images/awake-light.png"><img src="docs/images/awake-light.png" width="270" alt="Choice of 15, 30 or 60 minutes for a temporary awake session"></a></td>
+  </tr>
+</table>
+
+</details>
+
+Nine real screenshots supplied by JulienEsbt on 24 November 2026, copied without retouching. Display support and readings depend on your setup. [Image provenance and reusable assets](docs/images/README.md).
 
 ## What it does
 

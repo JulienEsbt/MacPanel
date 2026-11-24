@@ -1,0 +1,101 @@
+[
+  {
+    "file": "system-light.png",
+    "source": "Capture d’écran 2026-11-24 à 21.28.37.png",
+    "version": "0.4.2",
+    "language": "fr",
+    "appearance": "light",
+    "width": 464,
+    "height": 710,
+    "bytes": 253774,
+    "sha256": "4e2c7b8e9a490a308face085ac31d003ee583a1bc5237f1414a8c771bdde9f72"
+  },
+  {
+    "file": "system-dark.png",
+    "source": "Capture d’écran 2026-11-24 à 21.28.42.png",
+    "version": "0.4.2",
+    "language": "fr",
+    "appearance": "dark",
+    "width": 464,
+    "height": 710,
+    "bytes": 209028,
+    "sha256": "7daa942219191d4767330501d25745c74a44d0ccc63f86a06ae53cc3febb7b04"
+  },
+  {
+    "file": "activity-dark.png",
+    "source": "Capture d’écran 2026-11-24 à 21.29.17.png",
+    "version": "0.4.2",
+    "language": "fr",
+    "appearance": "dark",
+    "width": 464,
+    "height": 710,
+    "bytes": 213190,
+    "sha256": "e05d55b9929edf793877525068191eac655d65f6a028806e8adf8061ce8c50dc"
+  },
+  {
+    "file": "customization-dark.png",
+    "source": "Capture d’écran 2026-11-24 à 21.29.28.png",
+    "version": "0.4.2",
+    "language": "fr",
+    "appearance": "dark",
+    "width": 464,
+    "height": 710,
+    "bytes": 217764,
+    "sha256": "e39ae8519b9c6f9a0096204569cc8c0bbecc4379ef88a03c12f2ddf2b08b8848"
+  },
+  {
+    "file": "awake-light.png",
+    "source": "Capture d’écran 2026-11-24 à 21.29.41.png",
+    "version": "0.4.2",
+    "language": "fr",
+    "appearance": "light",
+    "width": 464,
+    "height": 710,
+    "bytes": 256385,
+    "sha256": "17a816c8f7da46bbf2303d9d468b84b17b556c6c71935614118970c2e62d6974"
+  },
+  {
+    "file": "displays-light.png",
+    "source": "Capture d’écran 2026-11-24 à 21.30.34.png",
+    "version": "0.4.2",
+    "language": "fr",
+    "appearance": "light",
+    "width": 464,
+    "height": 710,
+    "bytes": 249570,
+    "sha256": "6ff78329bd939f341bbf3b602725f640ea2764e4eb4bf53a654e7ad502a8af1d"
+  },
+  {
+    "file": "displays-dark.png",
+    "source": "Capture d’écran 2026-11-24 à 21.30.46.png",
+    "version": "0.4.2",
+    "language": "fr",
+    "appearance": "dark",
+    "width": 464,
+    "height": 710,
+    "bytes": 203960,
+    "sha256": "d4a814ced9cb6b74dd408d07c7480d7f4afd669803ff58d441c6a4fa29bc989c"
+  },
+  {
+    "file": "disks-dark.png",
+    "source": "Capture d’écran 2026-11-24 à 21.30.51.png",
+    "version": "0.4.2",
+    "language": "fr",
+    "appearance": "dark",
+    "width": 464,
+    "height": 710,
+    "bytes": 179411,
+    "sha256": "dcdb87b89902350d0484de52ee0594eeda18fe3b10679b0afb803c7ceb4e7bd5"
+  },
+  {
+    "file": "disks-light.png",
+    "source": "Capture d’écran 2026-11-24 à 21.30.56.png",
+    "version": "0.4.2",
+    "language": "fr",
+    "appearance": "light",
+    "width": 464,
+    "height": 710,
+    "bytes": 220679,
+    "sha256": "b1bdecd339c148415ad035f9256bdf581e868754e82ef32f3b661dc0de8388a6"
+  }
+]
